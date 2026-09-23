@@ -7,7 +7,9 @@ use coolsigma::series::{
     arithmetic_series_sum, centered_expansion, generalized_series_sum, interleaved_series_sum,
     iterated_square_sum, weighted_partial_square_sum,
 };
-use coolsigma::sums::{simplex_sum, truncated_simplex_sum};
+use coolsigma::sums::{
+    segment_simplex_sum, simplex_number, simplex_sum, truncated_simplex_sum,
+};
 
 /// Binomial coefficient `C(n, k)` computed additively via Pascal's triangle.
 /// Independent of the multiplicative implementations under test.
@@ -94,6 +96,37 @@ fn centered_expansion_matches_naive_loop() {
                 expected,
                 "centered_expansion({sides}, {layer})"
             );
+        }
+    }
+}
+
+#[test]
+fn simplex_number_matches_pascal() {
+    for d in 0..=6u64 {
+        for n in 0..=40u64 {
+            assert_eq!(
+                simplex_number(n, d),
+                pascal(n + d, d + 1),
+                "simplex_number({n}, {d})"
+            );
+        }
+    }
+}
+
+#[test]
+fn segment_simplex_sum_matches_naive_loop() {
+    for d in 0..=5u64 {
+        for start in 0..=10u64 {
+            for count in 0..=15u64 {
+                let expected: u128 = (start..start + count)
+                    .map(|k| pascal(k + d, d + 1))
+                    .sum();
+                assert_eq!(
+                    segment_simplex_sum(start, count, d),
+                    expected,
+                    "segment_simplex_sum({start}, {count}, {d})"
+                );
+            }
         }
     }
 }

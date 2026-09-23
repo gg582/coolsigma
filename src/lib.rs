@@ -49,7 +49,7 @@ mod tests {
         arithmetic_series_sum, centered_expansion, generalized_series_sum, interleaved_series_sum,
         iterated_square_sum, weighted_partial_square_sum,
     };
-    use crate::sums::{simplex_sum, truncated_simplex_sum};
+    use crate::sums::{segment_simplex_sum, simplex_number, simplex_sum, truncated_simplex_sum};
 
     #[test]
     fn test_simplex_sum() {
@@ -82,6 +82,24 @@ mod tests {
         assert_eq!(generalized_series_sum(5, 1), 55); // sum of squares
         assert_eq!(generalized_series_sum(5, 2), 140);
         assert_eq!(generalized_series_sum(5, 3), 294);
+    }
+
+    #[test]
+    fn test_simplex_number() {
+        assert_eq!(simplex_number(5, 0), 5);
+        assert_eq!(simplex_number(5, 1), 15); // triangular
+        assert_eq!(simplex_number(5, 2), 35); // tetrahedral
+        assert_eq!(simplex_number(5, 3), 70); // pentatope
+    }
+
+    #[test]
+    fn test_segment_simplex_sum() {
+        assert_eq!(segment_simplex_sum(4, 5, 0), 30); // 4 + 5 + 6 + 7 + 8
+        assert_eq!(segment_simplex_sum(4, 5, 1), 110);
+        assert_eq!(segment_simplex_sum(4, 5, 2), 315);
+        assert_eq!(segment_simplex_sum(1, 5, 2), 70); // 1 + 4 + 10 + 20 + 35
+        assert_eq!(segment_simplex_sum(0, 4, 1), 10); // 0 + 1 + 3 + 6
+        assert_eq!(segment_simplex_sum(7, 0, 3), 0); // empty segment
     }
 
     #[test]

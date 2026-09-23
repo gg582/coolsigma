@@ -43,6 +43,8 @@ assert_eq!(arithmetic_series_sum(1, 4, 2), 16); // 1 + 3 + 5 + 7
 | `combinations` | `combinations(n, k)` | Binomial coefficient `C(n, k)` |
 | `sums` | `simplex_sum(n, k)` | Simplex sum `C(n + k, n + 1)` |
 | `sums` | `truncated_simplex_sum(start, n, k)` | Simplex sum over `[start, k]` |
+| `sums` | `simplex_number(n, dimension)` | `C(n + dimension, dimension + 1)` |
+| `sums` | `segment_simplex_sum(start, count, dimension)` | Segment sum of consecutive simplex numbers |
 | `series` | `generalized_series_sum(n, r)` | `prod (n+i) * ((r+1)n + 1) / (r+2)!` |
 | `series` | `arithmetic_series_sum(first, count, diff)` | Sum of an arithmetic sequence |
 | `series` | `centered_expansion(sides, layer)` | Centered polygonal number `1 + sides * T(layer)` |
