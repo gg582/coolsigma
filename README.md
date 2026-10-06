@@ -18,12 +18,17 @@ coolsigma = "0.1"
 ## Quick start
 
 ```rust
-use coolsigma::combinations::combinations;
+use coolsigma::combinations::{combinations, multiset_coefficient};
 use coolsigma::series::{arithmetic_series_sum, iterated_square_sum};
-use coolsigma::sums::simplex_sum;
+use coolsigma::sums::{
+    segment_simplex_sum_vandermonde, simplex_sum, weighted_segment_simplex_sum,
+};
 
 // Binomial coefficient C(10, 3) = 120
 assert_eq!(combinations(10, 3), 120);
+
+// Multiset coefficient C(4 + 3 - 1, 3): size-3 multisets from 4 kinds
+assert_eq!(multiset_coefficient(4, 3), 20);
 
 // Tetrahedral number: 1 + 3 + 6 + 10 = 20
 assert_eq!(simplex_sum(2, 4), 20);
@@ -34,6 +39,13 @@ assert_eq!(iterated_square_sum(4, 2), 50);
 // Segment sum 5 + 6 + 7 + 8 = 26, generalized with a common difference
 assert_eq!(arithmetic_series_sum(5, 4, 1), 26);
 assert_eq!(arithmetic_series_sum(1, 4, 2), 16); // 1 + 3 + 5 + 7
+
+// Triangular numbers T(4) + ... + T(8) via the Chu-Vandermonde convolution:
+// M(5,3) + M(3,1) M(5,2) + M(3,2) M(5,1) = 35 + 45 + 30
+assert_eq!(segment_simplex_sum_vandermonde(4, 5, 1), 110);
+
+// Linearly weighted segment: 3*T(2) + 2*T(3) + 1*T(4) = 9 + 12 + 10
+assert_eq!(weighted_segment_simplex_sum(2, 3, 1), 31);
 ```
 
 ## API overview
