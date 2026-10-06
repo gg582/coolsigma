@@ -43,13 +43,16 @@ pub mod sums;
 
 #[cfg(test)]
 mod tests {
-    use crate::combinations::combinations;
+    use crate::combinations::{combinations, multiset_coefficient};
     use crate::interpolation::{forward_difference, newton_forward_interpolation};
     use crate::series::{
         arithmetic_series_sum, centered_expansion, generalized_series_sum, interleaved_series_sum,
         iterated_square_sum, weighted_partial_square_sum,
     };
-    use crate::sums::{segment_simplex_sum, simplex_number, simplex_sum, truncated_simplex_sum};
+    use crate::sums::{
+        segment_simplex_sum, segment_simplex_sum_vandermonde, simplex_number, simplex_sum,
+        truncated_simplex_sum, weighted_segment_simplex_sum,
+    };
 
     #[test]
     fn test_simplex_sum() {
@@ -100,6 +103,35 @@ mod tests {
         assert_eq!(segment_simplex_sum(1, 5, 2), 70); // 1 + 4 + 10 + 20 + 35
         assert_eq!(segment_simplex_sum(0, 4, 1), 10); // 0 + 1 + 3 + 6
         assert_eq!(segment_simplex_sum(7, 0, 3), 0); // empty segment
+    }
+
+    #[test]
+    fn test_multiset_coefficient() {
+        assert_eq!(multiset_coefficient(0, 0), 1);
+        assert_eq!(multiset_coefficient(0, 3), 0);
+        assert_eq!(multiset_coefficient(5, 0), 1);
+        assert_eq!(multiset_coefficient(5, 1), 5);
+        assert_eq!(multiset_coefficient(5, 2), 15);
+        assert_eq!(multiset_coefficient(5, 3), 35);
+        assert_eq!(multiset_coefficient(1, 100), 1);
+    }
+
+    #[test]
+    fn test_segment_simplex_sum_vandermonde() {
+        assert_eq!(segment_simplex_sum_vandermonde(4, 5, 0), 30);
+        assert_eq!(segment_simplex_sum_vandermonde(4, 5, 1), 110);
+        assert_eq!(segment_simplex_sum_vandermonde(4, 5, 2), 315);
+        assert_eq!(segment_simplex_sum_vandermonde(1, 5, 2), 70);
+        assert_eq!(segment_simplex_sum_vandermonde(0, 4, 1), 10);
+        assert_eq!(segment_simplex_sum_vandermonde(7, 0, 3), 0);
+    }
+
+    #[test]
+    fn test_weighted_segment_simplex_sum() {
+        assert_eq!(weighted_segment_simplex_sum(2, 3, 1), 31); // 3*3 + 2*6 + 1*10
+        assert_eq!(weighted_segment_simplex_sum(1, 4, 0), 20); // 4*1 + 3*2 + 2*3 + 1*4
+        assert_eq!(weighted_segment_simplex_sum(0, 3, 1), 5); // 3*0 + 2*1 + 1*3
+        assert_eq!(weighted_segment_simplex_sum(5, 0, 2), 0);
     }
 
     #[test]

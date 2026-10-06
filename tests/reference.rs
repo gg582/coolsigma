@@ -2,13 +2,14 @@
 //! brute-force reference implementations (Pascal's triangle and direct
 //! summation), run over grids of small inputs.
 
-use coolsigma::combinations::combinations;
+use coolsigma::combinations::{combinations, multiset_coefficient};
 use coolsigma::series::{
     arithmetic_series_sum, centered_expansion, generalized_series_sum, interleaved_series_sum,
     iterated_square_sum, weighted_partial_square_sum,
 };
 use coolsigma::sums::{
-    segment_simplex_sum, simplex_number, simplex_sum, truncated_simplex_sum,
+    segment_simplex_sum, segment_simplex_sum_vandermonde, simplex_number, simplex_sum,
+    truncated_simplex_sum, weighted_segment_simplex_sum,
 };
 
 /// Binomial coefficient `C(n, k)` computed additively via Pascal's triangle.
@@ -118,13 +119,63 @@ fn segment_simplex_sum_matches_naive_loop() {
     for d in 0..=5u64 {
         for start in 0..=10u64 {
             for count in 0..=15u64 {
-                let expected: u128 = (start..start + count)
-                    .map(|k| pascal(k + d, d + 1))
-                    .sum();
+                let expected: u128 = (start..start + count).map(|k| pascal(k + d, d + 1)).sum();
                 assert_eq!(
                     segment_simplex_sum(start, count, d),
                     expected,
                     "segment_simplex_sum({start}, {count}, {d})"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn multiset_coefficient_matches_pascal() {
+    for n in 0..=30u64 {
+        for k in 0..=12u64 {
+            let expected = if n == 0 {
+                (k == 0) as u128
+            } else {
+                pascal(n + k - 1, k)
+            };
+            assert_eq!(
+                multiset_coefficient(n, k),
+                expected,
+                "multiset_coefficient({n}, {k})"
+            );
+        }
+    }
+}
+
+#[test]
+fn segment_simplex_sum_vandermonde_matches_naive_loop() {
+    for d in 0..=6u64 {
+        for start in 0..=12u64 {
+            for count in 0..=15u64 {
+                let expected: u128 = (start..start + count).map(|k| pascal(k + d, d + 1)).sum();
+                assert_eq!(
+                    segment_simplex_sum_vandermonde(start, count, d),
+                    expected,
+                    "segment_simplex_sum_vandermonde({start}, {count}, {d})"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn weighted_segment_simplex_sum_matches_naive_loop() {
+    for d in 0..=5u64 {
+        for start in 0..=10u64 {
+            for count in 0..=15u64 {
+                let expected: u128 = (0..count)
+                    .map(|i| (count - i) as u128 * pascal(start + i + d, d + 1))
+                    .sum();
+                assert_eq!(
+                    weighted_segment_simplex_sum(start, count, d),
+                    expected,
+                    "weighted_segment_simplex_sum({start}, {count}, {d})"
                 );
             }
         }
