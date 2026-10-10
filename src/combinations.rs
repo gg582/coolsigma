@@ -1,6 +1,6 @@
 //! Binomial coefficients.
 
-use crate::common::mul_div;
+use crate::common::{mul_div, multiset, stirling2_row};
 
 /// Binomial coefficient `C(n, k)`.
 ///
@@ -66,20 +66,35 @@ pub fn combinations(n: u64, k: u64) -> u128 {
 /// assert_eq!(multiset_coefficient(0, 3), 0);
 /// ```
 pub fn multiset_coefficient(n: u64, k: u64) -> u128 {
-    if k == 0 {
-        return 1;
-    }
-    if n == 0 {
+    multiset(n as u128, k as u128)
+}
+
+/// Stirling number of the second kind `S(n, k)`: the number of ways to
+/// partition an `n`-element set into `k` non-empty blocks.
+///
+/// These are the coefficients of powers in the falling-factorial basis,
+/// `x^n == sum_k S(n, k) * x (x - 1) ... (x - k + 1)`, which is what makes
+/// closed forms of power sums possible (see
+/// [`power_sum`](crate::series::power_sum)). Returns `0` when `k > n`.
+///
+/// Runs in `O(n^2)` time.
+///
+/// # Panics
+///
+/// Panics if an entry of row `n` does not fit in `u128`.
+///
+/// # Example
+///
+/// ```
+/// use coolsigma::combinations::stirling_second_kind;
+///
+/// assert_eq!(stirling_second_kind(3, 2), 3); // {ab|c}, {ac|b}, {bc|a}
+/// assert_eq!(stirling_second_kind(4, 2), 7);
+/// assert_eq!(stirling_second_kind(0, 0), 1);
+/// ```
+pub fn stirling_second_kind(n: u64, k: u64) -> u128 {
+    if k > n {
         return 0;
     }
-
-    // C(n + k - 1, k) == C(n + k - 1, n - 1); iterate over the smaller one.
-    let top = n as u128 + k as u128 - 1;
-    let k = (k as u128).min(n as u128 - 1);
-
-    let mut result = 1u128;
-    for i in 1..=k {
-        result = mul_div(result, top - k + i, i);
-    }
-    result
+    stirling2_row(n)[k as usize]
 }

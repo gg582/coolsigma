@@ -11,6 +11,9 @@
 //!   applied to the outputs of the functions above.
 //! - [`interpolation::newton_forward_interpolation`] operates on `f64`,
 //!   because interpolation is real-valued by definition.
+//! - [`interpolation::leading_differences`] and
+//!   [`interpolation::newton_iterated_sum`] operate on `i128`, because
+//!   forward differences of an arbitrary sequence can be negative.
 //!
 //! # Panics
 //!
@@ -20,9 +23,10 @@
 //!
 //! - [`combinations`]: binomial coefficients.
 //! - [`sums`]: sums over simplex (binomial-coefficient) sequences.
-//! - [`series`]: closed-form sums of polynomial series.
-//! - [`interpolation`]: finite differences and Newton forward-difference
-//!   interpolation.
+//! - [`series`]: closed-form sums of polynomial series, including iterated
+//!   sums of squares and stepped rectangular frustums.
+//! - [`interpolation`]: finite differences, Newton forward-difference
+//!   interpolation, and iterated sums from a difference table.
 //!
 //! # Example
 //!
@@ -43,15 +47,24 @@ pub mod sums;
 
 #[cfg(test)]
 mod tests {
-    use crate::combinations::{combinations, multiset_coefficient};
-    use crate::interpolation::{forward_difference, newton_forward_interpolation};
+    use crate::combinations::{combinations, multiset_coefficient, stirling_second_kind};
+    use crate::interpolation::{
+        forward_difference, leading_differences, newton_forward_interpolation, newton_iterated_sum,
+        power_forward_differences,
+    };
     use crate::series::{
         arithmetic_series_sum, centered_expansion, generalized_series_sum, interleaved_series_sum,
-        iterated_square_sum, weighted_partial_square_sum,
+        iterated_power_sum, iterated_segment_iterated_square_sum,
+        iterated_segment_iterated_square_sum_offset_expansion, iterated_segment_power_sum,
+        iterated_segment_square_sum, iterated_square_sum, power_sum, rectangular_frustum_sum,
+        segment_generalized_series_sum, segment_iterated_square_sum,
+        segment_iterated_square_sum_offset_expansion, weighted_partial_square_sum,
     };
     use crate::sums::{
-        segment_simplex_sum, segment_simplex_sum_vandermonde, simplex_number, simplex_sum,
-        truncated_simplex_sum, weighted_segment_simplex_sum,
+        ascending_weighted_segment_simplex_sum, iterated_segment_simplex_sum, segment_simplex_sum,
+        segment_simplex_sum_vandermonde, simplex_convolution, simplex_number, simplex_sum,
+        trapezoid_weighted_segment_simplex_sum, truncated_simplex_sum,
+        weighted_segment_simplex_sum,
     };
 
     #[test]
@@ -181,5 +194,103 @@ mod tests {
         let diffs = [2.0, 0.5, 0.1];
         let value = newton_forward_interpolation(10.0, 0.5, &diffs);
         assert!((value - 10.94375).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_iterated_segment_simplex_sum() {
+        assert_eq!(iterated_segment_simplex_sum(4, 5, 1, 0), 36); // T(8)
+        assert_eq!(iterated_segment_simplex_sum(4, 5, 1, 1), 110);
+        assert_eq!(iterated_segment_simplex_sum(2, 3, 1, 2), 31);
+        assert_eq!(iterated_segment_simplex_sum(2, 4, 1, 3), 111);
+        assert_eq!(
+            iterated_segment_simplex_sum(1, 6, 0, 5),
+            simplex_number(6, 5)
+        );
+        assert_eq!(iterated_segment_simplex_sum(3, 0, 2, 2), 0);
+    }
+
+    #[test]
+    fn test_rectangular_frustum_sum() {
+        assert_eq!(rectangular_frustum_sum(1, 1, 5), 55);
+        assert_eq!(rectangular_frustum_sum(3, 3, 3), 50);
+        assert_eq!(rectangular_frustum_sum(2, 4, 3), 47);
+        assert_eq!(rectangular_frustum_sum(0, 0, 4), 14); // 0 + 1 + 4 + 9
+        assert_eq!(rectangular_frustum_sum(9, 9, 0), 0);
+    }
+
+    #[test]
+    fn test_segment_iterated_square_sum() {
+        assert_eq!(segment_iterated_square_sum(3, 3, 0), 50);
+        assert_eq!(segment_iterated_square_sum(3, 3, 1), 99);
+        assert_eq!(
+            segment_iterated_square_sum(1, 5, 2),
+            iterated_square_sum(5, 3)
+        );
+        assert_eq!(segment_iterated_square_sum_offset_expansion(3, 3, 0), 50);
+        assert_eq!(segment_iterated_square_sum_offset_expansion(3, 3, 1), 99);
+        assert_eq!(segment_iterated_square_sum_offset_expansion(0, 4, 1), 20); // 0 + 1 + 5 + 14
+    }
+
+    #[test]
+    fn test_iterated_segment_square_sum() {
+        assert_eq!(iterated_segment_square_sum(3, 3, 0), 25);
+        assert_eq!(iterated_segment_square_sum(3, 3, 1), 50);
+        assert_eq!(iterated_segment_square_sum(3, 3, 2), 84);
+        // n + 3 C(n, 2) + 2 C(n, 3) at n = 6
+        assert_eq!(iterated_segment_square_sum(1, 6, 1), 91);
+    }
+
+    #[test]
+    fn test_newton_iterated_sum() {
+        assert_eq!(leading_differences(&[]), Vec::<i128>::new());
+        assert_eq!(leading_differences(&[9, 16, 25, 36]), vec![9, 7, 2, 0]);
+        assert_eq!(newton_iterated_sum(1, &[3, 2], 5, 1), 55);
+        assert_eq!(newton_iterated_sum(9, &[7, 2], 3, 2), 84);
+        assert_eq!(newton_iterated_sum(9, &[7, 2], 3, 0), 25);
+        assert_eq!(newton_iterated_sum(10, &[-3], 4, 1), 22);
+        assert_eq!(newton_iterated_sum(10, &[-3], 0, 1), 0);
+    }
+
+    #[test]
+    fn test_iterated_segment_iterated_square_sum() {
+        assert_eq!(iterated_segment_iterated_square_sum(3, 3, 1, 0), 55);
+        assert_eq!(iterated_segment_iterated_square_sum(3, 3, 1, 1), 99);
+        assert_eq!(iterated_segment_iterated_square_sum(3, 3, 1, 2), 157);
+        assert_eq!(
+            iterated_segment_iterated_square_sum_offset_expansion(3, 3, 1, 2),
+            157
+        );
+        assert_eq!(iterated_segment_iterated_square_sum(0, 4, 1, 2), 27); // 4*0 + 3*1 + 2*5 + 1*14
+    }
+
+    #[test]
+    fn test_index_weighted_triangular_sums() {
+        assert_eq!(generalized_series_sum(4, 2), 65);
+        assert_eq!(segment_generalized_series_sum(3, 3, 2), 133);
+        assert_eq!(ascending_weighted_segment_simplex_sum(3, 3, 1), 71);
+        assert_eq!(ascending_weighted_segment_simplex_sum(0, 3, 1), 11); // 1*0 + 2*1 + 3*3
+        assert_eq!(trapezoid_weighted_segment_simplex_sum(3, 3, 0), 53);
+        assert_eq!(trapezoid_weighted_segment_simplex_sum(1, 4, 0), 65);
+    }
+
+    #[test]
+    fn test_power_sums() {
+        assert_eq!(stirling_second_kind(4, 2), 7);
+        assert_eq!(stirling_second_kind(2, 4), 0);
+        assert_eq!(power_forward_differences(1, 3), vec![1, 7, 12, 6]);
+        assert_eq!(power_forward_differences(0, 0), vec![1]);
+        assert_eq!(power_sum(5, 3), 225);
+        assert_eq!(power_sum(0, 3), 0);
+        assert_eq!(iterated_power_sum(4, 3, 2), 146);
+        assert_eq!(iterated_power_sum(4, 3, 0), 64);
+        assert_eq!(iterated_segment_power_sum(2, 3, 3, 1), 99);
+        assert_eq!(iterated_segment_power_sum(2, 3, 3, 2), 142);
+    }
+
+    #[test]
+    fn test_simplex_convolution() {
+        assert_eq!(simplex_convolution(4, 1, 1), 56);
+        assert_eq!(simplex_convolution(5, 0, 2), simplex_number(5, 4));
+        assert_eq!(simplex_convolution(0, 3, 3), 0);
     }
 }
