@@ -122,6 +122,30 @@ documentation examples that run as doctests.
 cargo test
 ```
 
+## Performance
+
+Every summation evaluates a closed form, so its cost depends on the degree
+of the formula, never on the summation bound. Criterion benchmarks live in
+`benches/benchmarks.rs`:
+
+```sh
+cargo bench
+```
+
+Representative single-threaded measurements on an x86-64 desktop:
+
+| Call | Time |
+| --- | --- |
+| `simplex_number(n, 3)`, n = 10 … 10⁶ | ~50 ns (flat in n) |
+| `power_sum(1000, p)`, p = 2 … 11 | 0.2 … 2.2 µs |
+| `combinations(100, 50)` | ~1.2 µs |
+| `positive_integer_root` | ~0.4 µs |
+| `power_sum(10⁶, 2)` closed form | ~216 ns |
+| same sum, naive loop | ~1.30 ms |
+
+The closed form is roughly 6000× faster than accumulating 10⁶ squares, and
+the gap widens linearly with the bound.
+
 ## License
 
 MIT
