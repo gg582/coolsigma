@@ -1,0 +1,9 @@
+[package]
+name = "coolsigma"
+version = "0.1.0"
+edition = "2024"
+description = "Closed-form combinatorial and polynomial series sums with exact u128 arithmetic"
+license = "MIT"
+keywords = ["combinatorics", "binomial-coefficient", "simplex", "power-sums", "interpolation"]
+categories = ["mathematics", "algorithms"]
+repository = "https://github.com/gg582/coolsigma"

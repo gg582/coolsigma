@@ -1,0 +1,83 @@
+//! Binomial coefficients.
+
+use crate::common::{binomial_wide, multiset, stirling2_row};
+
+/// Binomial coefficient `C(n, k)`.
+///
+/// Returns `0` when `k > n`. Runs in `O(k)` time with `O(1)` space, using
+/// the symmetry `C(n, k) == C(n, n - k)` and an exact division at every
+/// step to avoid intermediate overflow.
+///
+/// # Panics
+///
+/// Panics if `C(n, k)` does not fit in `u128`.
+///
+/// # Example
+///
+/// ```
+/// use coolsigma::combinations::combinations;
+///
+/// assert_eq!(combinations(5, 2), 10);
+/// assert_eq!(combinations(5, 6), 0);
+/// ```
+pub fn combinations(n: u64, k: u64) -> u128 {
+    binomial_wide(n as u128, k as u128)
+}
+
+/// Multiset coefficient `((n multichoose k)) = C(n + k - 1, k)`: the number
+/// of size-`k` multisets drawn from `n` kinds.
+///
+/// Equivalently the rising factorial `n (n + 1) ... (n + k - 1) / k!`. For
+/// fixed `k` this is the figurate sequence of order `k`: `k = 1` gives `n`,
+/// `k = 2` the triangular numbers, `k = 3` the tetrahedral numbers, so
+/// `multiset_coefficient(n, k) == simplex_number(n, k - 1)` for `k >= 1`.
+///
+/// Returns `1` when `k == 0` (including `n == 0`) and `0` when `n == 0 < k`.
+///
+/// # Panics
+///
+/// Panics if the result does not fit in `u128`.
+///
+/// # Example
+///
+/// ```
+/// use coolsigma::combinations::multiset_coefficient;
+///
+/// assert_eq!(multiset_coefficient(4, 0), 1);
+/// assert_eq!(multiset_coefficient(4, 2), 10); // triangular
+/// assert_eq!(multiset_coefficient(4, 3), 20); // tetrahedral
+/// assert_eq!(multiset_coefficient(0, 3), 0);
+/// ```
+pub fn multiset_coefficient(n: u64, k: u64) -> u128 {
+    multiset(n as u128, k as u128)
+}
+
+/// Stirling number of the second kind `S(n, k)`: the number of ways to
+/// partition an `n`-element set into `k` non-empty blocks.
+///
+/// These are the coefficients of powers in the falling-factorial basis,
+/// `x^n == sum_k S(n, k) * x (x - 1) ... (x - k + 1)`, which is what makes
+/// closed forms of power sums possible (see
+/// [`power_sum`](crate::series::power_sum)). Returns `0` when `k > n`.
+///
+/// Runs in `O(n^2)` time.
+///
+/// # Panics
+///
+/// Panics if an entry of row `n` does not fit in `u128`.
+///
+/// # Example
+///
+/// ```
+/// use coolsigma::combinations::stirling_second_kind;
+///
+/// assert_eq!(stirling_second_kind(3, 2), 3); // {ab|c}, {ac|b}, {bc|a}
+/// assert_eq!(stirling_second_kind(4, 2), 7);
+/// assert_eq!(stirling_second_kind(0, 0), 1);
+/// ```
+pub fn stirling_second_kind(n: u64, k: u64) -> u128 {
+    if k > n {
+        return 0;
+    }
+    stirling2_row(n)[k as usize]
+}
