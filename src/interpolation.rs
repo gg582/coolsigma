@@ -29,6 +29,10 @@ pub fn forward_difference(previous: u128, current: u128) -> u128 {
 /// `differences` holds `[d1, d2, d3, ...]`; any number of difference orders
 /// is accepted and all are used.
 ///
+/// Evaluation is in `f64` (53-bit mantissa), because the offset `s` is
+/// generally fractional. For exact arithmetic on integer sequences use
+/// [`newton_iterated_sum`] instead, which works in `i128`.
+///
 /// # Example
 ///
 /// ```

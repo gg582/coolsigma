@@ -21,7 +21,10 @@
 /// Exact evaluation is exact `i128` Horner. Once a Horner partial sum
 /// overflows `i128`, the remaining multiplications cannot shrink it below
 /// the overflow point again, so the candidate is certainly not a root and
-/// is skipped.
+/// is skipped. (Formally this relies on coefficients being strictly smaller
+/// than `2^127` in magnitude, which holds for every `i128` input except the
+/// pathological `i128::MIN`; coefficients that large are outside the
+/// supported domain.)
 ///
 /// # Panics
 ///
