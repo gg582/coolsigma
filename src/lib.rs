@@ -51,15 +51,19 @@ pub mod sums;
 
 #[cfg(test)]
 mod tests {
-    use crate::combinations::{combinations, multiset_coefficient, stirling_second_kind};
+    use crate::combinations::{
+        checked_combinations, checked_multiset_coefficient, checked_stirling_second_kind,
+        combinations, multiset_coefficient, stirling_second_kind,
+    };
     use crate::interpolation::{
-        forward_difference, leading_differences, newton_forward_interpolation, newton_iterated_sum,
-        power_forward_differences,
+        checked_forward_difference, forward_difference, leading_differences,
+        newton_forward_interpolation, newton_iterated_sum, power_forward_differences,
     };
     use crate::series::{
         arithmetic_series_sum, centered_expansion, centered_hexagonal_number,
-        centered_triangular_number, generalized_series_sum, interleaved_series_sum,
-        iterated_interleaved_series_sum, iterated_power_sum, iterated_segment_iterated_square_sum,
+        centered_triangular_number, checked_iterated_square_sum, checked_power_sum,
+        generalized_series_sum, interleaved_series_sum, iterated_interleaved_series_sum,
+        iterated_power_sum, iterated_segment_iterated_square_sum,
         iterated_segment_iterated_square_sum_offset_expansion, iterated_segment_power_sum,
         iterated_segment_square_sum, iterated_square_sum, odd_square, power_sum,
         rectangular_frustum_sum, segment_generalized_series_sum, segment_iterated_square_sum,
@@ -67,10 +71,10 @@ mod tests {
         weighted_shifted_pyramidal_sum, weighted_shifted_square_sum,
     };
     use crate::sums::{
-        ascending_weighted_segment_simplex_sum, iterated_segment_simplex_sum, segment_simplex_sum,
+        ascending_weighted_segment_simplex_sum, checked_segment_simplex_sum,
+        checked_simplex_number, iterated_segment_simplex_sum, segment_simplex_sum,
         segment_simplex_sum_vandermonde, simplex_convolution, simplex_number,
-        trapezoid_weighted_segment_simplex_sum,
-        weighted_segment_simplex_sum,
+        trapezoid_weighted_segment_simplex_sum, weighted_segment_simplex_sum,
     };
 
     #[test]
@@ -388,5 +392,48 @@ mod tests {
         assert_eq!(simplex_convolution(4, 1, 1), 56);
         assert_eq!(simplex_convolution(5, 0, 2), simplex_number(5, 4));
         assert_eq!(simplex_convolution(0, 3, 3), 0);
+    }
+
+    #[test]
+    fn test_checked_variants_match_panicking_variants() {
+        assert_eq!(checked_simplex_number(10, 2), Some(simplex_number(10, 2)));
+        assert_eq!(
+            checked_segment_simplex_sum(4, 5, 1),
+            Some(segment_simplex_sum(4, 5, 1))
+        );
+        assert_eq!(checked_combinations(110, 9), Some(combinations(110, 9)));
+        assert_eq!(
+            checked_multiset_coefficient(5, 3),
+            Some(multiset_coefficient(5, 3))
+        );
+        assert_eq!(
+            checked_stirling_second_kind(4, 2),
+            Some(stirling_second_kind(4, 2))
+        );
+        assert_eq!(
+            checked_iterated_square_sum(5, 3),
+            Some(iterated_square_sum(5, 3))
+        );
+        assert_eq!(checked_power_sum(5, 3), Some(power_sum(5, 3)));
+        assert_eq!(
+            checked_forward_difference(3, 10),
+            Some(forward_difference(3, 10))
+        );
+    }
+
+    #[test]
+    fn test_checked_variants_return_none_on_overflow() {
+        // C(2^64 + 1, 3) ~ 2^192 / 6, far past u128::MAX ~ 3.4e38.
+        assert_eq!(checked_simplex_number(u64::MAX, 2), None);
+        // C(200, 100) ~ 9.1e58.
+        assert_eq!(checked_combinations(200, 100), None);
+        // M(200, 100) == C(299, 100) ~ 1.4e81.
+        assert_eq!(checked_multiset_coefficient(200, 100), None);
+        // S(100, 50) ~ 50^100 / 50! ~ 2.9e105.
+        assert_eq!(checked_stirling_second_kind(100, 50), None);
+        // sum_{k=1}^{100000} k^20 ~ 1e105 / 21.
+        assert_eq!(checked_power_sum(100000, 20), None);
+        // The difference would be negative.
+        assert_eq!(checked_forward_difference(10, 3), None);
     }
 }

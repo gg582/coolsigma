@@ -21,6 +21,12 @@ use crate::common::{binomial_wide, multiset, stirling2_row};
 /// assert_eq!(combinations(5, 6), 0);
 /// ```
 pub fn combinations(n: u64, k: u64) -> u128 {
+    checked_combinations(n, k).expect("combinations: result exceeds u128")
+}
+
+/// Checked variant of [`combinations`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_combinations(n: u64, k: u64) -> Option<u128> {
     binomial_wide(n as u128, k as u128)
 }
 
@@ -49,6 +55,12 @@ pub fn combinations(n: u64, k: u64) -> u128 {
 /// assert_eq!(multiset_coefficient(0, 3), 0);
 /// ```
 pub fn multiset_coefficient(n: u64, k: u64) -> u128 {
+    checked_multiset_coefficient(n, k).expect("multiset_coefficient: result exceeds u128")
+}
+
+/// Checked variant of [`multiset_coefficient`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_multiset_coefficient(n: u64, k: u64) -> Option<u128> {
     multiset(n as u128, k as u128)
 }
 
@@ -76,8 +88,14 @@ pub fn multiset_coefficient(n: u64, k: u64) -> u128 {
 /// assert_eq!(stirling_second_kind(0, 0), 1);
 /// ```
 pub fn stirling_second_kind(n: u64, k: u64) -> u128 {
+    checked_stirling_second_kind(n, k).expect("stirling_second_kind: result exceeds u128")
+}
+
+/// Checked variant of [`stirling_second_kind`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_stirling_second_kind(n: u64, k: u64) -> Option<u128> {
     if k > n {
-        return 0;
+        return Some(0);
     }
-    stirling2_row(n)[k as usize]
+    Some(stirling2_row(n)?[k as usize])
 }

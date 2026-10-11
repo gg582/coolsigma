@@ -17,7 +17,14 @@ use crate::common::power_differences;
 /// assert_eq!(forward_difference(3, 10), 7);
 /// ```
 pub fn forward_difference(previous: u128, current: u128) -> u128 {
-    current - previous
+    checked_forward_difference(previous, current)
+        .expect("forward_difference: current must be >= previous")
+}
+
+/// Checked variant of [`forward_difference`]: returns `None` instead of panicking when
+/// `current < previous`.
+pub fn checked_forward_difference(previous: u128, current: u128) -> Option<u128> {
+    current.checked_sub(previous)
 }
 
 /// Evaluates `f(w + s)` from `f(w)` and the forward differences at `w`:
@@ -182,4 +189,5 @@ pub fn newton_iterated_sum(base: i128, differences: &[i128], count: u64, depth: 
 /// ```
 pub fn power_forward_differences(start: u64, power: u64) -> Vec<u128> {
     power_differences(start as u128, power, power)
+        .expect("power_forward_differences: difference exceeds u128")
 }

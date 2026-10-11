@@ -6,7 +6,9 @@ Every function in `combinations`, `sums`, and `series` takes `u64` inputs and
 returns an exact `u128` result. Intermediate values are kept small by
 cancelling common factors before multiplying, so overflow is avoided wherever
 the result itself fits. Functions panic when the mathematical result does not
-fit in `u128`.
+fit in `u128`; every such function `f` also has a `checked_f` variant
+returning `Option<u128>` (`None` instead of panicking) for use in pipelines
+that must not crash on out-of-range inputs.
 
 ## Installation
 

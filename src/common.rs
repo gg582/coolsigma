@@ -1,6 +1,6 @@
 //! Internal arithmetic helpers shared across modules.
 
-use crate::combinations::combinations;
+use crate::combinations::checked_combinations;
 
 /// Greatest common divisor of `a` and `b`.
 pub(crate) fn gcd(mut a: u128, mut b: u128) -> u128 {
@@ -17,30 +17,29 @@ pub(crate) fn gcd(mut a: u128, mut b: u128) -> u128 {
 /// Returns `0` when `k > n`. Uses the symmetry `C(n, k) == C(n, n - k)` and
 /// an exact division at every step to avoid intermediate overflow.
 ///
-/// # Panics
-///
-/// Panics if `C(n, k)` does not fit in `u128`.
-pub(crate) fn binomial_wide(n: u128, k: u128) -> u128 {
+/// Returns `None` if `C(n, k)` does not fit in `u128`.
+pub(crate) fn binomial_wide(n: u128, k: u128) -> Option<u128> {
     if k > n {
-        return 0;
+        return Some(0);
     }
     let k = k.min(n - k);
     let mut result = 1u128;
     for i in 1..=k {
-        result = mul_div(result, n - i + 1, i);
+        result = mul_div(result, n - i + 1, i)?;
     }
-    result
+    Some(result)
 }
 
 /// Computes `result * num / den` exactly, cancelling common factors before
 /// multiplying so intermediate values stay as small as possible.
 ///
-/// Callers must ensure the mathematical result fits in `u128`.
+/// Returns `None` if the result (or the product before the division becomes
+/// exact) exceeds `u128`.
 ///
 /// # Panics
 ///
-/// Panics if `den == 0` or the result exceeds `u128`.
-pub(crate) fn mul_div(result: u128, num: u128, den: u128) -> u128 {
+/// Panics if `den == 0`.
+pub(crate) fn mul_div(result: u128, num: u128, den: u128) -> Option<u128> {
     assert!(den > 0, "mul_div: zero denominator");
 
     let g = gcd(num, den);
@@ -51,14 +50,11 @@ pub(crate) fn mul_div(result: u128, num: u128, den: u128) -> u128 {
     den /= g;
 
     if result.is_multiple_of(den) {
-        result / den * num
+        (result / den).checked_mul(num)
     } else if num.is_multiple_of(den) {
-        num / den * result
+        (num / den).checked_mul(result)
     } else {
-        let product = result
-            .checked_mul(num)
-            .expect("mul_div: result exceeds u128");
-        product / den
+        Some(result.checked_mul(num)? / den)
     }
 }
 
@@ -67,17 +63,16 @@ pub(crate) fn mul_div(result: u128, num: u128, den: u128) -> u128 {
 ///
 /// Intended for small `h`, where `(x % h) * y` cannot overflow.
 ///
+/// Returns `None` if the quotient exceeds `u128`.
+///
 /// # Panics
 ///
-/// Panics if `h == 0` or the quotient exceeds `u128`.
-pub(crate) fn mul_div_rem(x: u128, y: u128, h: u128) -> (u128, u128) {
+/// Panics if `h == 0`.
+pub(crate) fn mul_div_rem(x: u128, y: u128, h: u128) -> Option<(u128, u128)> {
     let (xq, xr) = (x / h, x % h);
-    let low = xr.checked_mul(y).expect("mul_div_rem: result exceeds u128");
-    let q = xq
-        .checked_mul(y)
-        .and_then(|v| v.checked_add(low / h))
-        .expect("mul_div_rem: result exceeds u128");
-    (q, low % h)
+    let low = xr.checked_mul(y)?;
+    let q = xq.checked_mul(y)?.checked_add(low / h)?;
+    Some((q, low % h))
 }
 
 /// The `n`-th simplex number of the given dimension,
@@ -91,22 +86,26 @@ pub(crate) fn mul_div_rem(x: u128, y: u128, h: u128) -> (u128, u128) {
 /// ```
 ///
 /// with an exact division at every step.
-pub(crate) fn simplex(n: u128, dimension: u128) -> u128 {
+///
+/// Returns `None` if the value exceeds `u128`.
+pub(crate) fn simplex(n: u128, dimension: u128) -> Option<u128> {
     let mut result = n;
     for d in 0..dimension {
-        result = mul_div(result, n + d + 1, d + 2);
+        result = mul_div(result, n + d + 1, d + 2)?;
     }
-    result
+    Some(result)
 }
 
 /// Multiset coefficient `M(n, k) = C(n + k - 1, k)`, with `M(n, 0) == 1` and
 /// `M(0, k) == 0` for `k > 0`. For `k >= 1`, `M(n, k) == simplex(n, k - 1)`.
-pub(crate) fn multiset(n: u128, k: u128) -> u128 {
+///
+/// Returns `None` if the value exceeds `u128`.
+pub(crate) fn multiset(n: u128, k: u128) -> Option<u128> {
     if k == 0 {
-        return 1;
+        return Some(1);
     }
     if n == 0 {
-        return 0;
+        return Some(0);
     }
 
     // C(n + k - 1, k) == C(n + k - 1, n - 1); iterate over the smaller one.
@@ -115,42 +114,39 @@ pub(crate) fn multiset(n: u128, k: u128) -> u128 {
 
     let mut result = 1u128;
     for i in 1..=k {
-        result = mul_div(result, top - k + i, i);
+        result = mul_div(result, top - k + i, i)?;
     }
-    result
+    Some(result)
 }
 
 /// Row `[S(n, 0), S(n, 1), ..., S(n, n)]` of Stirling numbers of the second
 /// kind, from `S(i, k) = k * S(i - 1, k) + S(i - 1, k - 1)`.
 ///
-/// # Panics
-///
-/// Panics if an entry exceeds `u128`.
-pub(crate) fn stirling2_row(n: u64) -> Vec<u128> {
-    let overflow = "stirling2_row: entry exceeds u128";
+/// Returns `None` if an entry exceeds `u128`.
+pub(crate) fn stirling2_row(n: u64) -> Option<Vec<u128>> {
     let mut row = vec![1u128];
     for i in 1..=n as usize {
         let mut next = vec![0u128; i + 1];
         for k in 1..=i {
-            let carried = row
-                .get(k)
-                .map_or(0, |&s| (k as u128).checked_mul(s).expect(overflow));
-            next[k] = carried.checked_add(row[k - 1]).expect(overflow);
+            let carried = match row.get(k) {
+                Some(&s) => (k as u128).checked_mul(s)?,
+                None => 0,
+            };
+            next[k] = carried.checked_add(row[k - 1])?;
         }
         row = next;
     }
-    row
+    Some(row)
 }
 
 /// Falling factorial `x (x - 1) ... (x - t + 1)`; `0` when `t > x`.
-fn falling(x: u128, t: u128) -> u128 {
+///
+/// Returns `None` if the value exceeds `u128`.
+fn falling(x: u128, t: u128) -> Option<u128> {
     if t > x {
-        return 0;
+        return Some(0);
     }
-    (0..t).fold(1u128, |acc, i| {
-        acc.checked_mul(x - i)
-            .expect("falling: result exceeds u128")
-    })
+    (0..t).try_fold(1u128, |acc, i| acc.checked_mul(x - i))
 }
 
 /// Forward differences `[Δ^0 f(m), ..., Δ^{max_order} f(m)]` of
@@ -166,25 +162,24 @@ fn falling(x: u128, t: u128) -> u128 {
 ///
 /// Every term is non-negative, so each difference is computed exactly.
 /// `0^0` is taken to be `1`.
-pub(crate) fn power_differences(m: u128, power: u64, max_order: u64) -> Vec<u128> {
-    let overflow = "power_differences: difference exceeds u128";
-    let stirling = stirling2_row(power);
+///
+/// Returns `None` if a difference exceeds `u128`.
+pub(crate) fn power_differences(m: u128, power: u64, max_order: u64) -> Option<Vec<u128>> {
+    let stirling = stirling2_row(power)?;
     (0..=power.min(max_order) as u128)
         .map(|j| {
             (j..=power as u128)
                 .filter(|&k| stirling[k as usize] != 0)
-                .map(|k| {
-                    let tail = falling(m, k - j);
+                .try_fold(0u128, |acc, k| {
+                    let tail = falling(m, k - j)?;
                     if tail == 0 {
-                        return 0;
+                        return Some(acc);
                     }
-                    stirling[k as usize]
-                        .checked_mul(falling(k, j))
-                        .and_then(|v| v.checked_mul(tail))
-                        .expect(overflow)
+                    let term = stirling[k as usize]
+                        .checked_mul(falling(k, j)?)?
+                        .checked_mul(tail)?;
+                    acc.checked_add(term)
                 })
-                .try_fold(0u128, |acc, v| acc.checked_add(v))
-                .expect(overflow)
         })
         .collect()
 }
@@ -194,15 +189,13 @@ pub(crate) fn power_differences(m: u128, power: u64, max_order: u64) -> Vec<u128
 /// `[Δ^0 f(0), Δ^1 f(0), ...]`:
 /// `sum_j C(count + depth - 1, depth + j) * Δ^j f(0)`.
 ///
-/// # Panics
-///
-/// Panics with `overflow` if the result exceeds `u128`.
-pub(crate) fn newton_sum(differences: &[u128], count: u64, depth: u64, overflow: &str) -> u128 {
+/// Returns `None` if the result exceeds `u128`.
+pub(crate) fn newton_sum(differences: &[u128], count: u64, depth: u64) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     // count >= 1, so this cannot underflow.
-    let top = (count - 1).checked_add(depth).expect(overflow);
+    let top = (count - 1).checked_add(depth)?;
 
     let mut total = 0u128;
     for (j, &delta) in (0u64..).zip(differences) {
@@ -212,8 +205,8 @@ pub(crate) fn newton_sum(differences: &[u128], count: u64, depth: u64, overflow:
         let Some(order) = depth.checked_add(j).filter(|&order| order <= top) else {
             break;
         };
-        let term = combinations(top, order).checked_mul(delta).expect(overflow);
-        total = total.checked_add(term).expect(overflow);
+        let term = checked_combinations(top, order)?.checked_mul(delta)?;
+        total = total.checked_add(term)?;
     }
-    total
+    Some(total)
 }

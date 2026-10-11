@@ -1,7 +1,7 @@
 //! Closed-form sums of polynomial series.
 
 use crate::common::{gcd, mul_div, mul_div_rem, multiset, newton_sum, power_differences, simplex};
-use crate::sums::{ascending_weighted_segment_simplex_sum, simplex_number};
+use crate::sums::{checked_ascending_weighted_segment_simplex_sum, checked_simplex_number};
 
 /// Generalized combinatorial series sum
 /// `prod_{i=0}^{r} (n + i) * ((r + 1) * n + 1) / (r + 2)!`.
@@ -48,11 +48,17 @@ use crate::sums::{ascending_weighted_segment_simplex_sum, simplex_number};
 /// assert_eq!(generalized_series_sum(4, 2), 65); // 1*1 + 2*3 + 3*6 + 4*10
 /// ```
 pub fn generalized_series_sum(n: u64, r: u64) -> u128 {
+    checked_generalized_series_sum(n, r).expect("generalized_series_sum: result exceeds u128")
+}
+
+/// Checked variant of [`generalized_series_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_generalized_series_sum(n: u64, r: u64) -> Option<u128> {
     let n = n as u128;
     let r = r as u128;
 
     // prod_{i=0}^{r} (n + i) / (r + 1)! == C(n + r, r + 1).
-    let result = simplex(n, r);
+    let result = simplex(n, r)?;
 
     // prod_{i=0}^{r} (n + i) == C(n + r, r + 1) * (r + 1)!, so the remaining
     // factor of (r + 2)! leaves a single (r + 2) in the denominator.
@@ -91,21 +97,26 @@ pub fn generalized_series_sum(n: u64, r: u64) -> u128 {
 /// assert_eq!(segment_generalized_series_sum(3, 3, 2), 18 + 40 + 75); // 3*6 + 4*10 + 5*15
 /// ```
 pub fn segment_generalized_series_sum(start: u64, count: u64, r: u64) -> u128 {
+    checked_segment_generalized_series_sum(start, count, r)
+        .expect("segment_generalized_series_sum: result exceeds u128")
+}
+
+/// Checked variant of [`segment_generalized_series_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_segment_generalized_series_sum(start: u64, count: u64, r: u64) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
 
-    let end = start
-        .checked_add(count - 1)
-        .expect("segment_generalized_series_sum: result exceeds u128");
+    let end = start.checked_add(count - 1)?;
     // generalized_series_sum(x, r) is non-decreasing in x.
-    let hi = generalized_series_sum(end, r);
+    let hi = checked_generalized_series_sum(end, r)?;
     let lo = if start == 0 {
         0
     } else {
-        generalized_series_sum(start - 1, r)
+        checked_generalized_series_sum(start - 1, r)?
     };
-    hi - lo
+    Some(hi - lo)
 }
 
 /// Sum of an arithmetic sequence of `count` terms starting at `first` with
@@ -134,8 +145,15 @@ pub fn segment_generalized_series_sum(start: u64, count: u64, r: u64) -> u128 {
 /// assert_eq!(arithmetic_series_sum(1, 5, 2), 25); // 1 + 3 + 5 + 7 + 9
 /// ```
 pub fn arithmetic_series_sum(first: u64, count: u64, difference: u64) -> u128 {
+    checked_arithmetic_series_sum(first, count, difference)
+        .expect("arithmetic_series_sum: result exceeds u128")
+}
+
+/// Checked variant of [`arithmetic_series_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_arithmetic_series_sum(first: u64, count: u64, difference: u64) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
 
     let first = first as u128;
@@ -171,11 +189,17 @@ pub fn arithmetic_series_sum(first: u64, count: u64, difference: u64) -> u128 {
 /// assert_eq!(centered_expansion(2, 8), 25); // (2 * 2 + 1)^2
 /// ```
 pub fn centered_expansion(layer: u64, sides: u64) -> u128 {
+    checked_centered_expansion(layer, sides).expect("centered_expansion: result exceeds u128")
+}
+
+/// Checked variant of [`centered_expansion`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_centered_expansion(layer: u64, sides: u64) -> Option<u128> {
     let sides = sides as u128;
     let layer = layer as u128;
 
     // 1 + sides * layer * (layer + 1) / 2
-    1 + mul_div(layer, sides * (layer + 1), 2)
+    mul_div(layer, sides * (layer + 1), 2)?.checked_add(1)
 }
 
 /// Centered triangular number: `1 + 3 * T(layer) = 1, 4, 10, 19, 31, ...`,
@@ -191,7 +215,14 @@ pub fn centered_expansion(layer: u64, sides: u64) -> u128 {
 /// assert_eq!(centered_triangular_number(3), 19);
 /// ```
 pub fn centered_triangular_number(layer: u64) -> u128 {
-    centered_expansion(layer, 3)
+    checked_centered_triangular_number(layer)
+        .expect("centered_triangular_number: result exceeds u128")
+}
+
+/// Checked variant of [`centered_triangular_number`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_centered_triangular_number(layer: u64) -> Option<u128> {
+    checked_centered_expansion(layer, 3)
 }
 
 /// Centered hexagonal number: `1 + 6 * T(layer) = 1, 7, 19, 37, ...`,
@@ -207,7 +238,14 @@ pub fn centered_triangular_number(layer: u64) -> u128 {
 /// assert_eq!(centered_hexagonal_number(3), 37);
 /// ```
 pub fn centered_hexagonal_number(layer: u64) -> u128 {
-    centered_expansion(layer, 6)
+    checked_centered_hexagonal_number(layer)
+        .expect("centered_hexagonal_number: result exceeds u128")
+}
+
+/// Checked variant of [`centered_hexagonal_number`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_centered_hexagonal_number(layer: u64) -> Option<u128> {
+    checked_centered_expansion(layer, 6)
 }
 
 /// Odd square: `(2 * layer + 1)^2 = 1, 9, 25, 49, ...`.
@@ -224,7 +262,13 @@ pub fn centered_hexagonal_number(layer: u64) -> u128 {
 /// assert_eq!(odd_square(3), 49);
 /// ```
 pub fn odd_square(layer: u64) -> u128 {
-    centered_expansion(layer, 8)
+    checked_odd_square(layer).expect("odd_square: result exceeds u128")
+}
+
+/// Checked variant of [`odd_square`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_odd_square(layer: u64) -> Option<u128> {
+    checked_centered_expansion(layer, 8)
 }
 
 /// Sum of squares iterated `depth` times:
@@ -255,11 +299,17 @@ pub fn odd_square(layer: u64) -> u128 {
 /// assert_eq!(iterated_square_sum(5, 2), 105);
 /// ```
 pub fn iterated_square_sum(n: u64, depth: u64) -> u128 {
+    checked_iterated_square_sum(n, depth).expect("iterated_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_square_sum(n: u64, depth: u64) -> Option<u128> {
     let n = n as u128;
     let depth = depth as u128;
 
     // prod_{i=0}^{depth} (n + i) / (depth + 1)! == C(n + depth, depth + 1).
-    mul_div(simplex(n, depth), 2 * n + depth, depth + 2)
+    mul_div(simplex(n, depth)?, 2 * n + depth, depth + 2)
 }
 
 /// Number of unit cubes in a stepped rectangular frustum: `layers` stacked
@@ -297,8 +347,19 @@ pub fn iterated_square_sum(n: u64, depth: u64) -> u128 {
 /// assert_eq!(rectangular_frustum_sum(2, 4, 3), 47); // 2*4 + 3*5 + 4*6
 /// ```
 pub fn rectangular_frustum_sum(top_length: u64, top_width: u64, layers: u64) -> u128 {
+    checked_rectangular_frustum_sum(top_length, top_width, layers)
+        .expect("rectangular_frustum_sum: result exceeds u128")
+}
+
+/// Checked variant of [`rectangular_frustum_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_rectangular_frustum_sum(
+    top_length: u64,
+    top_width: u64,
+    layers: u64,
+) -> Option<u128> {
     if layers == 0 {
-        return 0;
+        return Some(0);
     }
 
     let (a, b, n) = (top_length as u128, top_width as u128, layers as u128);
@@ -309,14 +370,13 @@ pub fn rectangular_frustum_sum(top_length: u64, top_width: u64, layers: u64) -> 
     // adding so no intermediate value exceeds the result.
     let g = gcd(n, 6);
     let h = 6 / g;
-    let (q1, r1) = mul_div_rem(a, 2 * b + d, h);
-    let (q2, r2) = mul_div_rem(c, 2 * d + b, h);
+    let (q1, r1) = mul_div_rem(a, 2 * b + d, h)?;
+    let (q2, r2) = mul_div_rem(c, 2 * d + b, h)?;
     let (q3, r3) = ((c - a) / h, (c - a) % h);
 
     q1.checked_add(q2)
         .and_then(|v| v.checked_add(q3 + (r1 + r2 + r3) / h))
         .and_then(|v| v.checked_mul(n / g))
-        .expect("rectangular_frustum_sum: result exceeds u128")
 }
 
 /// Sum of `count` consecutive iterated square sums starting at index `start`:
@@ -348,7 +408,14 @@ pub fn rectangular_frustum_sum(top_length: u64, top_width: u64, layers: u64) -> 
 /// assert_eq!(segment_iterated_square_sum(3, 3, 1), 99); // 14 + 30 + 55
 /// ```
 pub fn segment_iterated_square_sum(start: u64, count: u64, order: u64) -> u128 {
-    iterated_segment_iterated_square_sum(start, count, order, 1)
+    checked_segment_iterated_square_sum(start, count, order)
+        .expect("segment_iterated_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`segment_iterated_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_segment_iterated_square_sum(start: u64, count: u64, order: u64) -> Option<u128> {
+    checked_iterated_segment_iterated_square_sum(start, count, order, 1)
 }
 
 /// [`segment_iterated_square_sum`] expanded in the offset `p = start - 1`.
@@ -385,7 +452,18 @@ pub fn segment_iterated_square_sum(start: u64, count: u64, order: u64) -> u128 {
 /// );
 /// ```
 pub fn segment_iterated_square_sum_offset_expansion(start: u64, count: u64, order: u64) -> u128 {
-    iterated_segment_iterated_square_sum_offset_expansion(start, count, order, 1)
+    checked_segment_iterated_square_sum_offset_expansion(start, count, order)
+        .expect("segment_iterated_square_sum_offset_expansion: result exceeds u128")
+}
+
+/// Checked variant of [`segment_iterated_square_sum_offset_expansion`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_segment_iterated_square_sum_offset_expansion(
+    start: u64,
+    count: u64,
+    order: u64,
+) -> Option<u128> {
+    checked_iterated_segment_iterated_square_sum_offset_expansion(start, count, order, 1)
 }
 
 /// `depth`-fold iterated partial sum of a segment of iterated square sums.
@@ -432,41 +510,50 @@ pub fn iterated_segment_iterated_square_sum(
     order: u64,
     depth: u64,
 ) -> u128 {
-    let overflow = "iterated_segment_iterated_square_sum: result exceeds u128";
+    checked_iterated_segment_iterated_square_sum(start, count, order, depth)
+        .expect("iterated_segment_iterated_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_segment_iterated_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_segment_iterated_square_sum(
+    start: u64,
+    count: u64,
+    order: u64,
+    depth: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     if depth == 0 {
-        let last = start.checked_add(count - 1).expect(overflow);
-        return iterated_square_sum(last, order);
+        let last = start.checked_add(count - 1)?;
+        return checked_iterated_square_sum(last, order);
     }
     if depth == 1 && order == 0 {
-        return rectangular_frustum_sum(start, start, count);
+        return checked_rectangular_frustum_sum(start, start, count);
     }
     if start == 0 {
         // iterated_square_sum(0, order) == 0, so drop the leading term; the
         // remaining weights are exactly those of a segment one shorter.
-        return iterated_segment_iterated_square_sum(1, count - 1, order, depth);
+        return checked_iterated_segment_iterated_square_sum(1, count - 1, order, depth);
     }
 
     let p = start - 1;
-    let top = order.checked_add(depth).expect(overflow);
-    let end = p.checked_add(count).expect(overflow);
+    let top = order.checked_add(depth)?;
+    let end = p.checked_add(count)?;
 
     let mut subtrahend = 0u128;
     for t in 0..depth {
-        let offset_term = iterated_square_sum(p, top - t);
+        let offset_term = checked_iterated_square_sum(p, top - t)?;
         if offset_term == 0 {
             continue;
         }
-        let product = multiset(count as u128, t as u128)
-            .checked_mul(offset_term)
-            .expect(overflow);
-        subtrahend = subtrahend.checked_add(product).expect(overflow);
+        let product = multiset(count as u128, t as u128)?.checked_mul(offset_term)?;
+        subtrahend = subtrahend.checked_add(product)?;
     }
     // The minuend is the full iterated sum up to `end`; the subtracted
     // terms are its contributions from indices up to `p`, so no underflow.
-    iterated_square_sum(end, top) - subtrahend
+    Some(checked_iterated_square_sum(end, top)? - subtrahend)
 }
 
 /// [`iterated_segment_iterated_square_sum`] expanded in the offset
@@ -516,40 +603,50 @@ pub fn iterated_segment_iterated_square_sum_offset_expansion(
     order: u64,
     depth: u64,
 ) -> u128 {
-    let overflow = "iterated_segment_iterated_square_sum_offset_expansion: result exceeds u128";
+    checked_iterated_segment_iterated_square_sum_offset_expansion(start, count, order, depth)
+        .expect("iterated_segment_iterated_square_sum_offset_expansion: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_segment_iterated_square_sum_offset_expansion`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_segment_iterated_square_sum_offset_expansion(
+    start: u64,
+    count: u64,
+    order: u64,
+    depth: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     if depth == 0 {
-        let last = start.checked_add(count - 1).expect(overflow);
-        return iterated_square_sum(last, order);
+        let last = start.checked_add(count - 1)?;
+        return checked_iterated_square_sum(last, order);
     }
     if start == 0 {
         // iterated_square_sum(0, order) == 0, so drop the leading term.
-        return iterated_segment_iterated_square_sum_offset_expansion(1, count - 1, order, depth);
+        return checked_iterated_segment_iterated_square_sum_offset_expansion(
+            1,
+            count - 1,
+            order,
+            depth,
+        );
     }
 
     let p = start - 1;
     let n = count as u128;
-    let top = order.checked_add(depth).expect(overflow);
+    let top = order.checked_add(depth)?;
 
-    let linear = simplex(n, top as u128)
-        .checked_mul(2 * p as u128)
-        .expect(overflow);
-    let mut total = iterated_square_sum(count, top)
-        .checked_add(linear)
-        .expect(overflow);
+    let linear = simplex(n, top as u128)?.checked_mul(2 * p as u128)?;
+    let mut total = checked_iterated_square_sum(count, top)?.checked_add(linear)?;
     for j in 0..=order {
-        let offset_term = iterated_square_sum(p, j);
+        let offset_term = checked_iterated_square_sum(p, j)?;
         if offset_term == 0 {
             continue;
         }
-        let product = offset_term
-            .checked_mul(simplex(n, (top - 1 - j) as u128))
-            .expect(overflow);
-        total = total.checked_add(product).expect(overflow);
+        let product = offset_term.checked_mul(simplex(n, (top - 1 - j) as u128)?)?;
+        total = total.checked_add(product)?;
     }
-    total
+    Some(total)
 }
 
 /// `depth`-fold iterated partial sum of a segment of squares, i.e. the
@@ -592,7 +689,14 @@ pub fn iterated_segment_iterated_square_sum_offset_expansion(
 /// assert_eq!(iterated_segment_square_sum(3, 3, 2), 84); // 3*9 + 2*16 + 1*25
 /// ```
 pub fn iterated_segment_square_sum(start: u64, count: u64, depth: u64) -> u128 {
-    iterated_segment_power_sum(start, count, 2, depth)
+    checked_iterated_segment_square_sum(start, count, depth)
+        .expect("iterated_segment_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_segment_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_segment_square_sum(start: u64, count: u64, depth: u64) -> Option<u128> {
+    checked_iterated_segment_power_sum(start, count, 2, depth)
 }
 
 /// `depth`-fold iterated partial sum of a segment of `power`-th powers:
@@ -635,18 +739,25 @@ pub fn iterated_segment_square_sum(start: u64, count: u64, depth: u64) -> u128 {
 /// assert_eq!(iterated_segment_power_sum(3, 3, 2, 1), 50); // 9 + 16 + 25
 /// ```
 pub fn iterated_segment_power_sum(start: u64, count: u64, power: u64, depth: u64) -> u128 {
+    checked_iterated_segment_power_sum(start, count, power, depth)
+        .expect("iterated_segment_power_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_segment_power_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_segment_power_sum(
+    start: u64,
+    count: u64,
+    power: u64,
+    depth: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     // Weights C(count + depth - 1, depth + j) vanish for j >= count, so the
     // differences beyond that order are never needed.
-    let differences = power_differences(start as u128, power, count - 1);
-    newton_sum(
-        &differences,
-        count,
-        depth,
-        "iterated_segment_power_sum: result exceeds u128",
-    )
+    let differences = power_differences(start as u128, power, count - 1)?;
+    newton_sum(&differences, count, depth)
 }
 
 /// Power sum iterated `depth` times: `sum_{k=1}^{n} ... sum_{k=1}^{n} k^power`
@@ -680,7 +791,14 @@ pub fn iterated_segment_power_sum(start: u64, count: u64, power: u64, depth: u64
 /// assert_eq!(iterated_power_sum(4, 3, 2), 146); // 1 + 9 + 36 + 100
 /// ```
 pub fn iterated_power_sum(n: u64, power: u64, depth: u64) -> u128 {
-    iterated_segment_power_sum(1, n, power, depth)
+    checked_iterated_power_sum(n, power, depth)
+        .expect("iterated_power_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_power_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_power_sum(n: u64, power: u64, depth: u64) -> Option<u128> {
+    checked_iterated_segment_power_sum(1, n, power, depth)
 }
 
 /// Sum of the first `n` `power`-th powers, `1^p + 2^p + ... + n^p`.
@@ -707,7 +825,13 @@ pub fn iterated_power_sum(n: u64, power: u64, depth: u64) -> u128 {
 /// assert_eq!(power_sum(5, 0), 5);
 /// ```
 pub fn power_sum(n: u64, power: u64) -> u128 {
-    iterated_power_sum(n, power, 1)
+    checked_power_sum(n, power).expect("power_sum: result exceeds u128")
+}
+
+/// Checked variant of [`power_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_power_sum(n: u64, power: u64) -> Option<u128> {
+    checked_iterated_power_sum(n, power, 1)
 }
 
 /// Weighted partial-square sum `sum_{k=1}^{n} k * (1^2 + ... + k^2)`,
@@ -725,15 +849,19 @@ pub fn power_sum(n: u64, power: u64) -> u128 {
 /// assert_eq!(weighted_partial_square_sum(5), 448);
 /// ```
 pub fn weighted_partial_square_sum(n: u64) -> u128 {
+    checked_weighted_partial_square_sum(n)
+        .expect("weighted_partial_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`weighted_partial_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_weighted_partial_square_sum(n: u64) -> Option<u128> {
     let n = n as u128;
 
     // C(n + 2, 3), the n-th tetrahedral number.
-    let triple = simplex(n, 2);
+    let triple = simplex(n, 2)?;
 
-    let quad = 8u128
-        .checked_mul(n * n)
-        .and_then(|v| v.checked_add(11 * n + 1))
-        .expect("weighted_partial_square_sum: result exceeds u128");
+    let quad = 8u128.checked_mul(n * n)?.checked_add(11 * n + 1)?;
 
     mul_div(triple, quad, 20)
 }
@@ -770,23 +898,31 @@ pub fn weighted_partial_square_sum(n: u64) -> u128 {
 /// assert_eq!(weighted_shifted_square_sum(4, 5), 1783);
 /// ```
 pub fn weighted_shifted_square_sum(m: u64, n: u64) -> u128 {
+    checked_weighted_shifted_square_sum(m, n)
+        .expect("weighted_shifted_square_sum: result exceeds u128")
+}
+
+/// Checked variant of [`weighted_shifted_square_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_weighted_shifted_square_sum(m: u64, n: u64) -> Option<u128> {
     if n == 0 {
-        return 0;
+        return Some(0);
     }
 
     // Weighted body: sum_{k=1}^{n} k * iterated_square_sum(m + k - 1, 1),
     // with the pyramidal numbers written in the simplex basis.
-    let body = 2 * ascending_weighted_segment_simplex_sum(m, n, 2)
-        - ascending_weighted_segment_simplex_sum(m, n, 1);
+    let a2 = checked_ascending_weighted_segment_simplex_sum(m, n, 2)?;
+    let a1 = checked_ascending_weighted_segment_simplex_sum(m, n, 1)?;
+    let body = 2u128.checked_mul(a2)? - a1;
 
     // Subtract sum_{k=1}^{n} k * iterated_square_sum(m - 1, 1); the second
     // factor is constant in k, so it factors out as the triangular number.
     let tail = if m == 0 {
         0
     } else {
-        iterated_square_sum(m - 1, 1) * simplex_number(n, 1)
+        checked_iterated_square_sum(m - 1, 1)?.checked_mul(checked_simplex_number(n, 1)?)?
     };
-    body - tail
+    Some(body - tail)
 }
 
 /// Weighted sum of shifted pyramidal numbers (truncated pile sum with the
@@ -821,9 +957,17 @@ pub fn weighted_shifted_square_sum(m: u64, n: u64) -> u128 {
 /// assert_eq!(weighted_shifted_pyramidal_sum(4, 5), 1993);
 /// ```
 pub fn weighted_shifted_pyramidal_sum(m: u64, n: u64) -> u128 {
+    checked_weighted_shifted_pyramidal_sum(m, n)
+        .expect("weighted_shifted_pyramidal_sum: result exceeds u128")
+}
+
+/// Checked variant of [`weighted_shifted_pyramidal_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_weighted_shifted_pyramidal_sum(m: u64, n: u64) -> Option<u128> {
     // T_x^1 == 2 * simplex_number(x, 2) - simplex_number(x, 1).
-    2 * ascending_weighted_segment_simplex_sum(m, n, 2)
-        - ascending_weighted_segment_simplex_sum(m, n, 1)
+    let a2 = checked_ascending_weighted_segment_simplex_sum(m, n, 2)?;
+    let a1 = checked_ascending_weighted_segment_simplex_sum(m, n, 1)?;
+    Some(2u128.checked_mul(a2)? - a1)
 }
 
 /// Sum of the interleaved sequence of centered hexagonal numbers and triple
@@ -844,19 +988,22 @@ pub fn weighted_shifted_pyramidal_sum(m: u64, n: u64) -> u128 {
 /// assert_eq!(interleaved_series_sum(5), 42); // 1 + 3 + 7 + 12 + 19
 /// ```
 pub fn interleaved_series_sum(n: u64) -> u128 {
+    checked_interleaved_series_sum(n).expect("interleaved_series_sum: result exceeds u128")
+}
+
+/// Checked variant of [`interleaved_series_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_interleaved_series_sum(n: u64) -> Option<u128> {
     let n = n as u128;
     let upper = n.div_ceil(2);
     let lower = n / 2;
 
-    let cube = upper
-        .checked_mul(upper)
-        .and_then(|v| v.checked_mul(upper))
-        .expect("interleaved_series_sum: result exceeds u128");
+    let cube = upper.checked_mul(upper)?.checked_mul(upper)?;
 
     // (lower * (lower + 1) / 2) * (2 * lower + 1): the first factor is exact.
-    let even_part = lower * (lower + 1) / 2 * (2 * lower + 1);
+    let even_part = (lower * (lower + 1) / 2).checked_mul(2 * lower + 1)?;
 
-    cube + even_part
+    cube.checked_add(even_part)
 }
 
 /// Double accumulation of the interleaved (cone-pile) sequence:
@@ -890,22 +1037,23 @@ pub fn interleaved_series_sum(n: u64) -> u128 {
 /// assert_eq!(iterated_interleaved_series_sum(5), 81);
 /// ```
 pub fn iterated_interleaved_series_sum(n: u64) -> u128 {
+    checked_iterated_interleaved_series_sum(n)
+        .expect("iterated_interleaved_series_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_interleaved_series_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_interleaved_series_sum(n: u64) -> Option<u128> {
     let n = n as u128;
-    let overflow = "iterated_interleaved_series_sum: result exceeds u128";
 
     if n.is_multiple_of(2) {
         let half = n / 2;
-        let product = half
-            .checked_mul(half + 1)
-            .expect(overflow);
+        let product = half.checked_mul(half + 1)?;
         // N(N+1)/2 is exact, and N^2 (N+1)^2 == (N(N+1))^2.
-        product
-            .checked_mul(product)
-            .and_then(|v| v.checked_add(product / 2))
-            .expect(overflow)
+        product.checked_mul(product)?.checked_add(product / 2)
     } else {
         let half = n.div_ceil(2);
-        let square = half.checked_mul(half).expect(overflow);
-        square.checked_mul(square).expect(overflow)
+        let square = half.checked_mul(half)?;
+        square.checked_mul(square)
     }
 }

@@ -1,7 +1,7 @@
 //! Sums over simplex (binomial-coefficient) sequences.
 
 use crate::common::{mul_div, multiset, simplex};
-use crate::series::generalized_series_sum;
+use crate::series::checked_generalized_series_sum;
 
 /// The `n`-th simplex number of the given dimension: `C(n + dimension, dimension + 1)`.
 ///
@@ -29,6 +29,12 @@ use crate::series::generalized_series_sum;
 /// assert_eq!(simplex_number(5, 3), 70); // pentatope
 /// ```
 pub fn simplex_number(n: u64, dimension: u64) -> u128 {
+    checked_simplex_number(n, dimension).expect("simplex_number: result exceeds u128")
+}
+
+/// Checked variant of [`simplex_number`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_simplex_number(n: u64, dimension: u64) -> Option<u128> {
     simplex(n as u128, dimension as u128)
 }
 
@@ -58,8 +64,15 @@ pub fn simplex_number(n: u64, dimension: u64) -> u128 {
 /// assert_eq!(segment_simplex_sum(4, 5, 2), 315); // S2(4) + ... + S2(8)
 /// ```
 pub fn segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
+    checked_segment_simplex_sum(start, count, dimension)
+        .expect("segment_simplex_sum: result exceeds u128")
+}
+
+/// Checked variant of [`segment_simplex_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_segment_simplex_sum(start: u64, count: u64, dimension: u64) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
 
     let end = start as u128 + count as u128 - 1;
@@ -67,13 +80,13 @@ pub fn segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
 
     // simplex_number(x, dimension) is non-decreasing in x, so `hi >= lo`
     // and the subtraction cannot underflow.
-    let hi = simplex(end, dimension);
+    let hi = simplex(end, dimension)?;
     let lo = if start == 0 {
         0
     } else {
-        simplex(start as u128 - 1, dimension)
+        simplex(start as u128 - 1, dimension)?
     };
-    hi - lo
+    Some(hi - lo)
 }
 
 /// [`segment_simplex_sum`] evaluated through the Chu–Vandermonde
@@ -117,7 +130,18 @@ pub fn segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
 /// );
 /// ```
 pub fn segment_simplex_sum_vandermonde(start: u64, count: u64, dimension: u64) -> u128 {
-    iterated_segment_simplex_sum(start, count, dimension, 1)
+    checked_segment_simplex_sum_vandermonde(start, count, dimension)
+        .expect("segment_simplex_sum_vandermonde: result exceeds u128")
+}
+
+/// Checked variant of [`segment_simplex_sum_vandermonde`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_segment_simplex_sum_vandermonde(
+    start: u64,
+    count: u64,
+    dimension: u64,
+) -> Option<u128> {
+    checked_iterated_segment_simplex_sum(start, count, dimension, 1)
 }
 
 /// `depth`-fold iterated partial sum of a segment of simplex numbers.
@@ -173,8 +197,20 @@ pub fn segment_simplex_sum_vandermonde(start: u64, count: u64, dimension: u64) -
 /// assert_eq!(iterated_segment_simplex_sum(1, 7, 3, 2), simplex_number(7, 5));
 /// ```
 pub fn iterated_segment_simplex_sum(start: u64, count: u64, dimension: u64, depth: u64) -> u128 {
+    checked_iterated_segment_simplex_sum(start, count, dimension, depth)
+        .expect("iterated_segment_simplex_sum: result exceeds u128")
+}
+
+/// Checked variant of [`iterated_segment_simplex_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_iterated_segment_simplex_sum(
+    start: u64,
+    count: u64,
+    dimension: u64,
+    depth: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     if depth == 0 {
         return simplex(start as u128 + count as u128 - 1, dimension as u128);
@@ -182,7 +218,7 @@ pub fn iterated_segment_simplex_sum(start: u64, count: u64, dimension: u64, dept
     if start == 0 {
         // simplex_number(0, dimension) == 0, so drop the leading term; the
         // remaining weights are exactly those of a segment one shorter.
-        return iterated_segment_simplex_sum(1, count - 1, dimension, depth);
+        return checked_iterated_segment_simplex_sum(1, count - 1, dimension, depth);
     }
 
     let a = start as u128 - 1;
@@ -194,23 +230,19 @@ pub fn iterated_segment_simplex_sum(start: u64, count: u64, dimension: u64, dept
     //   M(a, j + 1) = M(a, j) * (a + j) / (j + 1)
     //   M(b, t - 1) = M(b, t) * t / (b + t - 1)
     let mut offset_term = 1u128; // M(a, 0)
-    let mut length_term = multiset(b, order + depth); // M(b, order + depth)
+    let mut length_term = multiset(b, order + depth)?; // M(b, order + depth)
     let mut total = 0u128;
     for j in 0..=order {
-        let product = offset_term
-            .checked_mul(length_term)
-            .expect("iterated_segment_simplex_sum: result exceeds u128");
-        total = total
-            .checked_add(product)
-            .expect("iterated_segment_simplex_sum: result exceeds u128");
+        let product = offset_term.checked_mul(length_term)?;
+        total = total.checked_add(product)?;
 
         if j < order {
-            offset_term = mul_div(offset_term, a + j, j + 1);
+            offset_term = mul_div(offset_term, a + j, j + 1)?;
             let t = order + depth - j;
-            length_term = mul_div(length_term, t, b + t - 1);
+            length_term = mul_div(length_term, t, b + t - 1)?;
         }
     }
-    total
+    Some(total)
 }
 
 /// Linearly weighted segment sum of simplex numbers: the first term gets
@@ -246,18 +278,29 @@ pub fn iterated_segment_simplex_sum(start: u64, count: u64, dimension: u64, dept
 /// assert_eq!(weighted_segment_simplex_sum(2, 3, 1), 31);
 /// ```
 pub fn weighted_segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
+    checked_weighted_segment_simplex_sum(start, count, dimension)
+        .expect("weighted_segment_simplex_sum: result exceeds u128")
+}
+
+/// Checked variant of [`weighted_segment_simplex_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_weighted_segment_simplex_sum(
+    start: u64,
+    count: u64,
+    dimension: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
 
-    let outer = segment_simplex_sum(start, count, dimension + 1);
+    let outer = checked_segment_simplex_sum(start, count, dimension + 1)?;
     let offset = if start == 0 {
         0
     } else {
-        simplex(start as u128 - 1, dimension as u128 + 1)
+        simplex(start as u128 - 1, dimension as u128 + 1)?
     };
     // outer == weighted + count * offset, so this cannot underflow.
-    outer - count as u128 * offset
+    Some(outer - count as u128 * offset)
 }
 
 /// Convolution of two simplex sequences:
@@ -289,33 +332,33 @@ pub fn weighted_segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u
 /// assert_eq!(simplex_convolution(4, 1, 1), 56);
 /// ```
 pub fn simplex_convolution(n: u64, a: u64, b: u64) -> u128 {
-    let dimension = a
-        .checked_add(b)
-        .and_then(|d| d.checked_add(2))
-        .expect("simplex_convolution: dimension exceeds u64");
+    checked_simplex_convolution(n, a, b).expect("simplex_convolution: result exceeds u128")
+}
+
+/// Checked variant of [`simplex_convolution`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_simplex_convolution(n: u64, a: u64, b: u64) -> Option<u128> {
+    let dimension = a.checked_add(b).and_then(|d| d.checked_add(2))?;
     simplex(n as u128, dimension as u128)
 }
 
 /// `sum_{j=0}^{last} M(p, j) * generalized_series_sum(n, order - j)`: the
 /// Chu–Vandermonde split of index-weighted segment sums into an offset part
 /// and a length part.
-fn offset_index_weighted_convolution(p: u64, n: u64, order: u64, last: u64) -> u128 {
-    let overflow = "index-weighted segment sum: result exceeds u128";
+fn offset_index_weighted_convolution(p: u64, n: u64, order: u64, last: u64) -> Option<u128> {
     let mut offset_term = 1u128; // M(p, 0)
     let mut total = 0u128;
     for j in 0..=last {
         if offset_term == 0 {
             break; // M(0, j) == 0 for every j >= 1
         }
-        let product = offset_term
-            .checked_mul(generalized_series_sum(n, order - j))
-            .expect(overflow);
-        total = total.checked_add(product).expect(overflow);
+        let product = offset_term.checked_mul(checked_generalized_series_sum(n, order - j)?)?;
+        total = total.checked_add(product)?;
         if j < last {
-            offset_term = mul_div(offset_term, p as u128 + j as u128, j as u128 + 1);
+            offset_term = mul_div(offset_term, p as u128 + j as u128, j as u128 + 1)?;
         }
     }
-    total
+    Some(total)
 }
 
 /// Segment of simplex numbers weighted by position, ascending:
@@ -353,15 +396,25 @@ fn offset_index_weighted_convolution(p: u64, n: u64, order: u64, last: u64) -> u
 /// assert_eq!(ascending_weighted_segment_simplex_sum(3, 3, 1), 71);
 /// ```
 pub fn ascending_weighted_segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
+    checked_ascending_weighted_segment_simplex_sum(start, count, dimension)
+        .expect("ascending_weighted_segment_simplex_sum: result exceeds u128")
+}
+
+/// Checked variant of [`ascending_weighted_segment_simplex_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_ascending_weighted_segment_simplex_sum(
+    start: u64,
+    count: u64,
+    dimension: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     if start == 0 {
         // Drop the zero leading term: the remaining weights are one larger
         // than those of a segment starting at 1, hence the extra plain sum.
-        return ascending_weighted_segment_simplex_sum(1, count - 1, dimension)
-            .checked_add(segment_simplex_sum(1, count - 1, dimension))
-            .expect("ascending_weighted_segment_simplex_sum: result exceeds u128");
+        return checked_ascending_weighted_segment_simplex_sum(1, count - 1, dimension)?
+            .checked_add(checked_segment_simplex_sum(1, count - 1, dimension)?);
     }
 
     let order = dimension + 1;
@@ -407,16 +460,26 @@ pub fn ascending_weighted_segment_simplex_sum(start: u64, count: u64, dimension:
 /// assert_eq!(trapezoid_weighted_segment_simplex_sum(1, 6, 0), generalized_series_sum(6, 2));
 /// ```
 pub fn trapezoid_weighted_segment_simplex_sum(start: u64, count: u64, dimension: u64) -> u128 {
+    checked_trapezoid_weighted_segment_simplex_sum(start, count, dimension)
+        .expect("trapezoid_weighted_segment_simplex_sum: result exceeds u128")
+}
+
+/// Checked variant of [`trapezoid_weighted_segment_simplex_sum`]: returns `None` instead of panicking when
+/// the result exceeds `u128`.
+pub fn checked_trapezoid_weighted_segment_simplex_sum(
+    start: u64,
+    count: u64,
+    dimension: u64,
+) -> Option<u128> {
     if count == 0 {
-        return 0;
+        return Some(0);
     }
     if start == 0 {
         // Drop the zero leading term: the remaining trapezoidal weights are
         // those of a segment one shorter plus the descending weights
         // `count - 1, ..., 1`.
-        return trapezoid_weighted_segment_simplex_sum(1, count - 1, dimension)
-            .checked_add(weighted_segment_simplex_sum(1, count - 1, dimension))
-            .expect("trapezoid_weighted_segment_simplex_sum: result exceeds u128");
+        return checked_trapezoid_weighted_segment_simplex_sum(1, count - 1, dimension)?
+            .checked_add(checked_weighted_segment_simplex_sum(1, count - 1, dimension)?);
     }
 
     let order = dimension + 1;
