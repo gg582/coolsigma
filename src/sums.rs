@@ -479,7 +479,11 @@ pub fn checked_trapezoid_weighted_segment_simplex_sum(
         // those of a segment one shorter plus the descending weights
         // `count - 1, ..., 1`.
         return checked_trapezoid_weighted_segment_simplex_sum(1, count - 1, dimension)?
-            .checked_add(checked_weighted_segment_simplex_sum(1, count - 1, dimension)?);
+            .checked_add(checked_weighted_segment_simplex_sum(
+                1,
+                count - 1,
+                dimension,
+            )?);
     }
 
     let order = dimension + 1;

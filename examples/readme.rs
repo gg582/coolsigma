@@ -3,7 +3,9 @@ use coolsigma::series::{
     arithmetic_series_sum, iterated_segment_square_sum, iterated_square_sum,
     rectangular_frustum_sum,
 };
-use coolsigma::sums::{segment_simplex_sum_vandermonde, simplex_number, weighted_segment_simplex_sum};
+use coolsigma::sums::{
+    segment_simplex_sum_vandermonde, simplex_number, weighted_segment_simplex_sum,
+};
 
 fn main() {
     assert_eq!(combinations(10, 3), 120);

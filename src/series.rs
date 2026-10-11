@@ -791,8 +791,7 @@ pub fn checked_iterated_segment_power_sum(
 /// assert_eq!(iterated_power_sum(4, 3, 2), 146); // 1 + 9 + 36 + 100
 /// ```
 pub fn iterated_power_sum(n: u64, power: u64, depth: u64) -> u128 {
-    checked_iterated_power_sum(n, power, depth)
-        .expect("iterated_power_sum: result exceeds u128")
+    checked_iterated_power_sum(n, power, depth).expect("iterated_power_sum: result exceeds u128")
 }
 
 /// Checked variant of [`iterated_power_sum`]: returns `None` instead of panicking when

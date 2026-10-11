@@ -151,7 +151,6 @@ mod tests {
         assert_eq!(interleaved_series_sum(n), 42);
     }
 
-
     #[test]
     fn test_multiset_coefficient() {
         assert_eq!(multiset_coefficient(0, 0), 1);
@@ -279,7 +278,11 @@ mod tests {
         // Huge constant term: Newton-Raphson stage, verified exactly.
         // 10^13 * (x - 3)(x - 7) = 10^13 x^2 - 10^14 x + 21 * 10^13.
         assert_eq!(
-            positive_integer_root(&[210_000_000_000_000, -100_000_000_000_000, 10_000_000_000_000]),
+            positive_integer_root(&[
+                210_000_000_000_000,
+                -100_000_000_000_000,
+                10_000_000_000_000
+            ]),
             Some(7)
         );
     }

@@ -247,9 +247,7 @@ fn weighted_shifted_pyramidal_sum_matches_naive_loop() {
         for n in 0..=20u64 {
             let mut expected = 0u128;
             for k in 1..=n {
-                let pyramidal: u128 = (1..=m + k - 1)
-                    .map(|i| (i as u128) * (i as u128))
-                    .sum();
+                let pyramidal: u128 = (1..=m + k - 1).map(|i| (i as u128) * (i as u128)).sum();
                 expected += k as u128 * pyramidal;
             }
             assert_eq!(
@@ -278,7 +276,11 @@ fn interleaved_series_sum_matches_cone_pile_formula() {
         // W_n == (S_n^1 * (2n + 1) + ceil(n / 2)) / 4.
         let s1 = simplex_number(n, 1);
         let expected = (s1 * (2 * n as u128 + 1) + n.div_ceil(2) as u128) / 4;
-        assert_eq!(interleaved_series_sum(n), expected, "interleaved_series_sum({n})");
+        assert_eq!(
+            interleaved_series_sum(n),
+            expected,
+            "interleaved_series_sum({n})"
+        );
     }
 }
 
