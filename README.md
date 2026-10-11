@@ -14,7 +14,7 @@ that must not crash on out-of-range inputs.
 
 ```toml
 [dependencies]
-coolsigma = "0.1"
+coolsigma = "1"
 ```
 
 ## Quick start

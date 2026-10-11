@@ -1,6 +1,6 @@
 [package]
 name = "coolsigma"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 description = "Closed-form combinatorial and polynomial series sums with exact u128 arithmetic"
 license = "MIT"

@@ -41,6 +41,8 @@
 //! assert_eq!(iterated_square_sum(5, 2), 105); // double sum of squares
 //! ```
 
+#![forbid(unsafe_code)]
+
 mod common;
 
 pub mod combinations;
