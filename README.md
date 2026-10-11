@@ -148,4 +148,4 @@ the gap widens linearly with the bound.
 
 ## License
 
-MIT
+MIT License. See [LICENSE](./LICENSE)
