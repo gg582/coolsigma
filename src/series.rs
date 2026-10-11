@@ -167,10 +167,10 @@ pub fn arithmetic_series_sum(first: u64, count: u64, difference: u64) -> u128 {
 /// ```
 /// use coolsigma::series::centered_expansion;
 ///
-/// assert_eq!(centered_expansion(6, 2), 19); // 1 + 6 * (1 + 2)
-/// assert_eq!(centered_expansion(8, 2), 25); // (2 * 2 + 1)^2
+/// assert_eq!(centered_expansion(2, 6), 19); // 1 + 6 * (1 + 2)
+/// assert_eq!(centered_expansion(2, 8), 25); // (2 * 2 + 1)^2
 /// ```
-pub fn centered_expansion(sides: u64, layer: u64) -> u128 {
+pub fn centered_expansion(layer: u64, sides: u64) -> u128 {
     let sides = sides as u128;
     let layer = layer as u128;
 
@@ -191,7 +191,7 @@ pub fn centered_expansion(sides: u64, layer: u64) -> u128 {
 /// assert_eq!(centered_triangular_number(3), 19);
 /// ```
 pub fn centered_triangular_number(layer: u64) -> u128 {
-    centered_expansion(3, layer)
+    centered_expansion(layer, 3)
 }
 
 /// Centered hexagonal number: `1 + 6 * T(layer) = 1, 7, 19, 37, ...`,
@@ -207,7 +207,7 @@ pub fn centered_triangular_number(layer: u64) -> u128 {
 /// assert_eq!(centered_hexagonal_number(3), 37);
 /// ```
 pub fn centered_hexagonal_number(layer: u64) -> u128 {
-    centered_expansion(6, layer)
+    centered_expansion(layer, 6)
 }
 
 /// Odd square: `(2 * layer + 1)^2 = 1, 9, 25, 49, ...`.
@@ -224,7 +224,7 @@ pub fn centered_hexagonal_number(layer: u64) -> u128 {
 /// assert_eq!(odd_square(3), 49);
 /// ```
 pub fn odd_square(layer: u64) -> u128 {
-    centered_expansion(8, layer)
+    centered_expansion(layer, 8)
 }
 
 /// Sum of squares iterated `depth` times:

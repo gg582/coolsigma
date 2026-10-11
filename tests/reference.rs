@@ -77,9 +77,9 @@ fn centered_expansion_matches_naive_loop() {
         for layer in 0..=40u64 {
             let expected = 1 + sides as u128 * (1..=layer).map(|k| k as u128).sum::<u128>();
             assert_eq!(
-                centered_expansion(sides, layer),
+                centered_expansion(layer, sides),
                 expected,
-                "centered_expansion({sides}, {layer})"
+                "centered_expansion({layer}, {sides})"
             );
         }
     }

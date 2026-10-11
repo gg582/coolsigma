@@ -187,10 +187,10 @@ mod tests {
 
     #[test]
     fn test_centered_expansion() {
-        assert_eq!(centered_expansion(6, 0), 1); // center point only
-        assert_eq!(centered_expansion(6, 2), 19); // hexagonal: 1, 7, 19
-        assert_eq!(centered_expansion(8, 2), 25); // odd square (2*2+1)^2
-        assert_eq!(centered_expansion(8, 3), 49);
+        assert_eq!(centered_expansion(0, 6), 1); // center point only
+        assert_eq!(centered_expansion(2, 6), 19); // hexagonal: 1, 7, 19
+        assert_eq!(centered_expansion(2, 8), 25); // odd square (2*2+1)^2
+        assert_eq!(centered_expansion(3, 8), 49);
     }
 
     #[test]
@@ -226,9 +226,9 @@ mod tests {
         assert_eq!(odd_square(3), 49);
         // All three are centered_expansion with 3, 6 and 8 sides.
         for n in 0..=10u64 {
-            assert_eq!(centered_triangular_number(n), centered_expansion(3, n));
-            assert_eq!(centered_hexagonal_number(n), centered_expansion(6, n));
-            assert_eq!(odd_square(n), centered_expansion(8, n));
+            assert_eq!(centered_triangular_number(n), centered_expansion(n, 3));
+            assert_eq!(centered_hexagonal_number(n), centered_expansion(n, 6));
+            assert_eq!(odd_square(n), centered_expansion(n, 8));
         }
     }
 

@@ -75,7 +75,7 @@ assert_eq!(iterated_segment_square_sum(3, 3, 2), 84);
 | `series` | `generalized_series_sum(n, r)` | `sum k * C(k+r-1, r) = prod (n+i) * ((r+1)n + 1) / (r+2)!` |
 | `series` | `segment_generalized_series_sum(start, count, r)` | Segment of `k * C(k+r-1, r)` |
 | `series` | `arithmetic_series_sum(first, count, diff)` | Sum of an arithmetic sequence |
-| `series` | `centered_expansion(sides, layer)` | Centered polygonal number `1 + sides * T(layer)` |
+| `series` | `centered_expansion(layer, sides)` | Centered polygonal number `1 + sides * T(layer)` |
 | `series` | `centered_triangular_number(layer)` | `1 + 3 * T(layer)` |
 | `series` | `centered_hexagonal_number(layer)` | `1 + 6 * T(layer)` |
 | `series` | `odd_square(layer)` | `(2n + 1)^2` |
