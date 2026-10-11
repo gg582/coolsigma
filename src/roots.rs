@@ -1,19 +1,27 @@
-//! Integer root finding for polynomial equations (the "opening the square"
-//! step of the classical problems).
+//! Exact positive integer roots of polynomials with integer coefficients.
 
-/// Smallest positive integer root of a polynomial with integer coefficients,
-/// or `None` if there is none.
+/// Positive integer root of a polynomial with integer coefficients, or
+/// `None` if there is none.
 ///
 /// `coefficients[i]` is the coefficient of `x^i` (constant term first).
-/// Leading and trailing zero coefficients are ignored. Candidates are the
-/// positive divisors of the constant term (rational-root theorem), tested
-/// ascending, so the *smallest* positive integer root is returned.
+/// Leading and trailing zero coefficients are ignored.
 ///
-/// Evaluation is exact (`i128` Horner). Once a Horner partial sum overflows
-/// `i128`, the remaining multiplications cannot shrink it below the overflow
-/// point again, so the candidate is certainly not a root and is skipped.
+/// Two-stage hybrid:
 ///
-/// Runs in `O(sqrt(|c0|) * degree)` time, where `c0` is the constant term.
+/// 1. When the constant term is small (`|c0| <= 10^12`), the candidates are
+///    the positive divisors of `|c0|` (rational-root theorem) tested in
+///    ascending order with exact `i128` Horner evaluation, so the *smallest*
+///    positive integer root is returned.
+/// 2. For larger constant terms, divisor enumeration (linear in
+///    `sqrt(|c0|)`) is infeasible, so a Newton–Raphson search in `f64`
+///    starting from the Cauchy bound is tried first and its result verified
+///    with an exact integer evaluation. This stage returns *any* verified
+///    positive integer root, not necessarily the smallest.
+///
+/// Exact evaluation is exact `i128` Horner. Once a Horner partial sum
+/// overflows `i128`, the remaining multiplications cannot shrink it below
+/// the overflow point again, so the candidate is certainly not a root and
+/// is skipped.
 ///
 /// # Panics
 ///
@@ -47,7 +55,20 @@ pub fn positive_integer_root(coefficients: &[i128]) -> Option<u64> {
 
     let c0 = coeffs[0].unsigned_abs();
 
-    // Candidate roots are the positive divisors of |c0|, ascending.
+    if c0 <= ENUMERATION_LIMIT {
+        smallest_root_by_divisors(coeffs, c0)
+    } else {
+        newton_root(coeffs)
+    }
+}
+
+/// Divisor enumeration is linear in `sqrt(c0)`; past this bound the
+/// Newton–Raphson stage is used instead.
+const ENUMERATION_LIMIT: u128 = 1_000_000_000_000;
+
+/// Exact ascending divisor enumeration: returns the smallest positive
+/// integer root.
+fn smallest_root_by_divisors(coeffs: &[i128], c0: u128) -> Option<u64> {
     let mut small = Vec::new();
     let mut large = Vec::new();
     let mut d = 1u128;
@@ -67,6 +88,57 @@ pub fn positive_integer_root(coefficients: &[i128]) -> Option<u64> {
         }
     }
     None
+}
+
+/// Newton–Raphson search in `f64` starting from the Cauchy bound
+/// `1 + max|a_i| / |a_n|`, followed by exact integer verification of the
+/// converged candidate (and its neighbours, to absorb rounding).
+fn newton_root(coeffs: &[i128]) -> Option<u64> {
+    let lead = coeffs.last().unwrap().unsigned_abs() as f64;
+    let max_coeff = coeffs[..coeffs.len() - 1]
+        .iter()
+        .map(|c| c.unsigned_abs())
+        .max()
+        .unwrap_or(0) as f64;
+    let mut x = 1.0 + max_coeff / lead;
+
+    for _ in 0..100 {
+        let (f, df) = eval_with_derivative_f64(coeffs, x);
+        if !f.is_finite() || !df.is_finite() || df == 0.0 {
+            return None;
+        }
+        let next = x - f / df;
+        if !next.is_finite() || next < 0.5 {
+            return None;
+        }
+        if (next - x).abs() <= 1e-12 * x {
+            x = next;
+            break;
+        }
+        x = next;
+    }
+
+    let center = x.round();
+    if center < 1.0 || center > u64::MAX as f64 {
+        return None;
+    }
+    let center = center as i128;
+
+    [center - 1, center, center + 1]
+        .into_iter()
+        .find(|&r| r >= 1 && eval(coeffs, r) == Some(0))
+        .and_then(|r| u64::try_from(r).ok())
+}
+
+/// Simultaneous Horner evaluation of `f(x)` and `f'(x)` in `f64`.
+fn eval_with_derivative_f64(coeffs: &[i128], x: f64) -> (f64, f64) {
+    let mut f = 0.0;
+    let mut df = 0.0;
+    for &c in coeffs.iter().rev() {
+        df = df * x + f;
+        f = f * x + c as f64;
+    }
+    (f, df)
 }
 
 /// Exact Horner evaluation, or `None` once the running value overflows

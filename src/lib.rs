@@ -281,6 +281,12 @@ mod tests {
         assert_eq!(positive_integer_root(&[1, 0, 1]), None);
         // x * (x - 5) = x^2 - 5x: zero constant term.
         assert_eq!(positive_integer_root(&[0, -5, 1]), Some(5));
+        // Huge constant term: Newton-Raphson stage, verified exactly.
+        // 10^13 * (x - 3)(x - 7) = 10^13 x^2 - 10^14 x + 21 * 10^13.
+        assert_eq!(
+            positive_integer_root(&[210_000_000_000_000, -100_000_000_000_000, 10_000_000_000_000]),
+            Some(7)
+        );
     }
 
     #[test]
