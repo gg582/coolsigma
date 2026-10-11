@@ -35,9 +35,9 @@
 //!
 //! ```
 //! use coolsigma::series::iterated_square_sum;
-//! use coolsigma::sums::simplex_sum;
+//! use coolsigma::sums::simplex_number;
 //!
-//! assert_eq!(simplex_sum(2, 10), 220); // 10th tetrahedral number
+//! assert_eq!(simplex_number(10, 2), 220); // 10th tetrahedral number
 //! assert_eq!(iterated_square_sum(5, 2), 105); // double sum of squares
 //! ```
 
@@ -68,25 +68,34 @@ mod tests {
     };
     use crate::sums::{
         ascending_weighted_segment_simplex_sum, iterated_segment_simplex_sum, segment_simplex_sum,
-        segment_simplex_sum_vandermonde, simplex_convolution, simplex_number, simplex_sum,
-        trapezoid_weighted_segment_simplex_sum, truncated_simplex_sum,
+        segment_simplex_sum_vandermonde, simplex_convolution, simplex_number,
+        trapezoid_weighted_segment_simplex_sum,
         weighted_segment_simplex_sum,
     };
 
     #[test]
-    fn test_simplex_sum() {
-        assert_eq!(simplex_sum(0, 0), 0);
-        assert_eq!(simplex_sum(1, 10), 55);
-        assert_eq!(simplex_sum(2, 10), 220);
-        assert_eq!(simplex_sum(3, 10), 715);
-        assert_eq!(simplex_sum(100, 10), 4_643_330_358_810);
+    fn test_simplex_number() {
+        assert_eq!(simplex_number(0, 1), 0);
+        assert_eq!(simplex_number(10, 1), 55); // 1 + 2 + ... + 10
+        assert_eq!(simplex_number(10, 2), 220); // tetrahedral
+        assert_eq!(simplex_number(10, 3), 715);
+        assert_eq!(simplex_number(5, 0), 5);
+        assert_eq!(simplex_number(5, 1), 15);
+        assert_eq!(simplex_number(5, 2), 35);
+        assert_eq!(simplex_number(5, 3), 70); // pentatope
+        assert_eq!(simplex_number(10, 100), 4_643_330_358_810);
     }
 
     #[test]
-    fn test_truncated_simplex_sum() {
-        assert_eq!(truncated_simplex_sum(4, 1, 6), 15);
-        assert_eq!(truncated_simplex_sum(1, 1, 6), 21);
-        assert_eq!(truncated_simplex_sum(0, 1, 6), 0);
+    fn test_segment_simplex_sum() {
+        assert_eq!(segment_simplex_sum(4, 5, 0), 30); // 4 + 5 + 6 + 7 + 8
+        assert_eq!(segment_simplex_sum(4, 3, 0), 15); // 4 + 5 + 6
+        assert_eq!(segment_simplex_sum(1, 6, 0), 21); // 1 + ... + 6
+        assert_eq!(segment_simplex_sum(4, 5, 1), 110);
+        assert_eq!(segment_simplex_sum(4, 5, 2), 315);
+        assert_eq!(segment_simplex_sum(1, 5, 2), 70); // 1 + 4 + 10 + 20 + 35
+        assert_eq!(segment_simplex_sum(0, 4, 1), 10); // 0 + 1 + 3 + 6
+        assert_eq!(segment_simplex_sum(7, 0, 3), 0); // empty segment
     }
 
     #[test]
@@ -104,24 +113,6 @@ mod tests {
         assert_eq!(generalized_series_sum(5, 1), 55); // sum of squares
         assert_eq!(generalized_series_sum(5, 2), 140);
         assert_eq!(generalized_series_sum(5, 3), 294);
-    }
-
-    #[test]
-    fn test_simplex_number() {
-        assert_eq!(simplex_number(5, 0), 5);
-        assert_eq!(simplex_number(5, 1), 15); // triangular
-        assert_eq!(simplex_number(5, 2), 35); // tetrahedral
-        assert_eq!(simplex_number(5, 3), 70); // pentatope
-    }
-
-    #[test]
-    fn test_segment_simplex_sum() {
-        assert_eq!(segment_simplex_sum(4, 5, 0), 30); // 4 + 5 + 6 + 7 + 8
-        assert_eq!(segment_simplex_sum(4, 5, 1), 110);
-        assert_eq!(segment_simplex_sum(4, 5, 2), 315);
-        assert_eq!(segment_simplex_sum(1, 5, 2), 70); // 1 + 4 + 10 + 20 + 35
-        assert_eq!(segment_simplex_sum(0, 4, 1), 10); // 0 + 1 + 3 + 6
-        assert_eq!(segment_simplex_sum(7, 0, 3), 0); // empty segment
     }
 
     /// Every family of the reference law table pinned at `n = 5` against

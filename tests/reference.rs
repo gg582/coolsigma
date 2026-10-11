@@ -18,8 +18,8 @@ use coolsigma::series::{
 };
 use coolsigma::sums::{
     ascending_weighted_segment_simplex_sum, iterated_segment_simplex_sum, segment_simplex_sum,
-    segment_simplex_sum_vandermonde, simplex_convolution, simplex_number, simplex_sum,
-    trapezoid_weighted_segment_simplex_sum, truncated_simplex_sum, weighted_segment_simplex_sum,
+    segment_simplex_sum_vandermonde, simplex_convolution, simplex_number,
+    trapezoid_weighted_segment_simplex_sum, weighted_segment_simplex_sum,
 };
 
 /// Binomial coefficient `C(n, k)` computed additively via Pascal's triangle.
@@ -41,40 +41,14 @@ fn pascal(n: u64, k: u64) -> u128 {
 }
 
 #[test]
-fn simplex_sum_matches_pascal_summation() {
-    for d in 0..=8u64 {
-        for m in 0..=40u64 {
-            let expected: u128 = (1..=m).map(|i| pascal(i + d - 1, d)).sum();
-            assert_eq!(simplex_sum(d, m), expected, "simplex_sum({d}, {m})");
-        }
-    }
-}
-
-#[test]
-fn simplex_sum_matches_binomial_identity() {
+fn simplex_number_matches_binomial_identity() {
     for d in 0..=8u64 {
         for m in 0..=40u64 {
             assert_eq!(
-                simplex_sum(d, m),
-                combinations(d + m, d + 1),
-                "simplex_sum({d}, {m})"
+                simplex_number(m, d),
+                combinations(m + d, d + 1),
+                "simplex_number({m}, {d})"
             );
-        }
-    }
-}
-
-#[test]
-fn truncated_simplex_sum_matches_pascal_summation() {
-    for d in 0..=8u64 {
-        for m in 1..=40u64 {
-            for start in 1..=m {
-                let expected: u128 = (start..=m).map(|i| pascal(i + d - 1, d)).sum();
-                assert_eq!(
-                    truncated_simplex_sum(start, d, m),
-                    expected,
-                    "truncated_simplex_sum({start}, {d}, {m})"
-                );
-            }
         }
     }
 }

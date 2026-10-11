@@ -24,7 +24,7 @@ use coolsigma::series::{
     rectangular_frustum_sum,
 };
 use coolsigma::sums::{
-    segment_simplex_sum_vandermonde, simplex_sum, weighted_segment_simplex_sum,
+    segment_simplex_sum_vandermonde, simplex_number, weighted_segment_simplex_sum,
 };
 
 // Binomial coefficient C(10, 3) = 120
@@ -34,7 +34,7 @@ assert_eq!(combinations(10, 3), 120);
 assert_eq!(multiset_coefficient(4, 3), 20);
 
 // Tetrahedral number: 1 + 3 + 6 + 10 = 20
-assert_eq!(simplex_sum(2, 4), 20);
+assert_eq!(simplex_number(4, 2), 20);
 
 // Double sum of squares: sum_{j=1}^{4} sum_{k=1}^{j} k^2 = 1 + 5 + 14 + 30 = 50
 assert_eq!(iterated_square_sum(4, 2), 50);
@@ -64,8 +64,6 @@ assert_eq!(iterated_segment_square_sum(3, 3, 2), 84);
 | `combinations` | `combinations(n, k)` | Binomial coefficient `C(n, k)` |
 | `combinations` | `multiset_coefficient(n, k)` | Multiset coefficient `C(n + k - 1, k)` |
 | `combinations` | `stirling_second_kind(n, k)` | Stirling number of the second kind `S(n, k)` |
-| `sums` | `simplex_sum(n, k)` | Simplex sum `C(n + k, n + 1)` |
-| `sums` | `truncated_simplex_sum(start, n, k)` | Simplex sum over `[start, k]` |
 | `sums` | `simplex_number(n, dimension)` | `C(n + dimension, dimension + 1)` |
 | `sums` | `segment_simplex_sum(start, count, dimension)` | Segment sum of consecutive simplex numbers |
 | `sums` | `segment_simplex_sum_vandermonde(start, count, dimension)` | Same segment sum via the Chu–Vandermonde convolution |
